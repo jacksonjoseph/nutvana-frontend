@@ -1,0 +1,131 @@
+<div class="form-page">
+  <div class="form-header">
+    <button class="icon-btn" (click)="goBack()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+        stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6" />
+      </svg>
+    </button>
+    <h1 class="form-title">Product Inventory</h1>
+    <button class="fab" (click)="openCreateModal()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+        stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="form-body">
+    <div class="product-info">
+      <span class="product-code">{{ product?.code }}</span>
+      <h2 class="product-name">{{ product?.name }}</h2>
+    </div>
+
+    @if (product?.inventory) {
+    <div class="summary-cards">
+      <div class="summary-card">
+        <label class="summary-label">Available</label>
+        <div class="summary-value" [class.success]="product!.inventory!.quantity > product!.inventory!.reorderLevel"
+          [class.danger]="product!.inventory!.reorderLevel > product!.inventory!.quantity">
+          {{ product!.inventory!.quantity }}
+        </div>
+      </div>
+      <div class="summary-card">
+        <label class="summary-label">Reorder Level</label>
+        <div class="summary-value">{{ product!.inventory!.reorderLevel }}</div>
+      </div>
+      <div class="summary-card">
+        <label class="summary-label">Last Activity</label>
+        <div class="summary-value small">{{ product!.inventory!.lastUpdated | date:'short' }}</div>
+      </div>
+    </div>
+    }
+
+    <div class="section-title">Transactions ({{ totalElements() }})</div>
+
+    @if (loading()) {
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Loading transactions...</p>
+    </div>
+    } @else {
+    <div class="transactions-list">
+      @for (txn of transactions(); track txn.id) {
+      <div class="txn-card">
+        <div class="txn-header">
+          <span class="txn-type" [class]="getTypeClass(txn.transactionType)">{{ txn.transactionType.replace('_', ' ')
+            }}</span>
+          <span class="txn-date">{{ txn.createdAt | date:'MMM d, h:mm a' }}</span>
+        </div>
+        <div class="txn-body">
+          <div>
+            <p class="txn-desc">{{ txn.notes || 'No notes' }}</p>
+            @if (txn.referenceId) {
+            <span class="txn-ref">REF: {{ txn.referenceId }}</span>
+            }
+          </div>
+          <div class="txn-qty" [class]="getTypeClass(txn.transactionType)">
+            {{ getTypeClass(txn.transactionType) === 'danger' ? '' : '+' }}{{ txn.quantity }}
+          </div>
+        </div>
+      </div>
+      } @empty {
+      <div class="empty-state">
+        <p>No transactions recorded for this product.</p>
+      </div>
+      }
+    </div>
+
+    @if (totalPages() > 1) {
+    <div class="pagination">
+      <button class="btn-page" [disabled]="currentPage() === 0 || loading()"
+        (click)="loadTransactions(currentPage() - 1)">Previous</button>
+      <span class="page-info">Page {{ currentPage() + 1 }} of {{ totalPages() }}</span>
+      <button class="btn-page" [disabled]="currentPage() >= totalPages() - 1 || loading()"
+        (click)="loadTransactions(currentPage() + 1)">Next</button>
+    </div>
+    }
+    }
+  </div>
+
+  @if (showCreateModal()) {
+  <div class="modal-backdrop" (click)="showCreateModal.set(false)">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Record Transaction</h3>
+        <button class="close-btn" (click)="showCreateModal.set(false)">×</button>
+      </div>
+      <form class="modal-body" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label class="form-label">Transaction Type</label>
+          <select class="form-input" [(ngModel)]="newTransaction.transactionType" name="transactionType" required>
+            @for (type of transactionTypes; track type) {
+            <option [value]="type">{{ type.replace('_', ' ') }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quantity</label>
+          <input type="number" class="form-input" [(ngModel)]="newTransaction.quantity" name="quantity" min="0.01"
+            step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reference ID</label>
+          <input type="text" class="form-input" [(ngModel)]="newTransaction.referenceId" name="referenceId"
+            placeholder="Batch ID, Invoice #, etc.">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-input" [(ngModel)]="newTransaction.notes" name="notes" rows="3"
+            placeholder="Additional details..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="cancel-btn" (click)="showCreateModal.set(false)">Cancel</button>
+          <button type="submit" class="submit-btn" [disabled]="newTransaction.quantity <= 0">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  }
+</div>

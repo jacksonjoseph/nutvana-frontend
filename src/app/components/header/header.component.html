@@ -1,0 +1,88 @@
+<!-- Overlay backdrop -->
+<div class="menu-overlay" [class.open]="menuOpen" (click)="closeMenu()"></div>
+
+<!-- Header bar -->
+<header class="app-header">
+  <button class="hamburger-btn" (click)="toggleMenu()" [class.active]="menuOpen" aria-label="Toggle menu">
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+  </button>
+
+  <span class="brand-name">nutvana</span>
+
+  <div class="header-spacer"></div>
+</header>
+
+<!-- Slide-out side menu -->
+<nav class="side-menu" [class.open]="menuOpen">
+  <div class="menu-header">
+    <span class="menu-brand">nutvana</span>
+    <span class="menu-subtitle">Sales Dashboard</span>
+  </div>
+
+  <div class="menu-links">
+    <a routerLink="/dashboard" routerLinkActive="active" class="menu-link" (click)="closeMenu()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+      </svg>
+      <span>Dashboard</span>
+    </a>
+
+    <a routerLink="/products" routerLinkActive="active" class="menu-link" (click)="closeMenu()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+        <line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
+      <span>Products</span>
+    </a>
+
+    <a routerLink="/customers" routerLinkActive="active" class="menu-link" (click)="closeMenu()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span>Customers</span>
+    </a>
+
+    <a routerLink="/sales-persons" routerLinkActive="active" class="menu-link" (click)="closeMenu()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      <span>Sales Persons</span>
+    </a>
+
+    <a routerLink="/orders" routerLinkActive="active" class="menu-link" (click)="closeMenu()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 01-8 0"/>
+      </svg>
+      <span>Orders</span>
+    </a>
+
+    <a routerLink="/expenses" routerLinkActive="active" class="menu-link" (click)="closeMenu()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23"/>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+      </svg>
+      <span>Expenses</span>
+    </a>
+
+    <a routerLink="/insights" routerLinkActive="active" class="menu-link" (click)="closeMenu()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/>
+        <line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      <span>Insights</span>
+    </a>
+  </div>
+</nav>

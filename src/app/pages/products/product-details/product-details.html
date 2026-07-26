@@ -1,0 +1,135 @@
+<div class="form-page">
+    <div class="form-header">
+        <button class="back-btn" (click)="goBack()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+            </svg>
+        </button>
+        <h1 class="form-title">Product Details</h1>
+        <div class="menu-container">
+            <button class="icon-btn" (click)="toggleMenu()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="5" r="1.5" />
+                    <circle cx="12" cy="12" r="1.5" />
+                    <circle cx="12" cy="19" r="1.5" />
+                </svg>
+            </button>
+            @if (showMenu()) {
+            <div class="dropdown-menu">
+                <button class="menu-item" (click)="navigateToInventory(); toggleMenu()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                        <line x1="2" y1="10" x2="22" y2="10"/>
+                    </svg>
+                    Inventory
+                </button>
+                <button class="menu-item" (click)="navigateToEdit(); toggleMenu()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                    Edit
+                </button>
+                <button class="menu-item text-danger" (click)="confirmDelete(); toggleMenu()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    Delete
+                </button>
+            </div>
+            }
+        </div>
+    </div>
+
+    @if (loading()) {
+    <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Loading product...</p>
+    </div>
+    } @else {
+    <div class="form-body">
+        <div class="form-group">
+            <label class="form-label">Product Name</label>
+            <div class="form-value">{{ product.name }}</div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Product Code</label>
+            <div class="form-value"><span class="code-badge">{{ product.code }}</span></div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Max Retail Price</label>
+                <div class="form-value">{{ product.maxRetailPrice | currency:'INR':'₹':'1.2-2' }}</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Max Sale Price</label>
+                <div class="form-value accent masked-value">
+                    <span>{{ showSalePrice() ? (product.maxSalePrice | currency:'INR':'₹':'1.2-2') : 'INR ••••••'
+                        }}</span>
+                    <button type="button" class="eye-btn" (click)="toggleSalePrice()">
+                        @if (showSalePrice()) {
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                        } @else {
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Summary -->
+    @if (!summaryLoading()) {
+      <div class="summary-strip">
+        @if (product.inventory) {
+          <div class="summary-item">
+            <span class="summary-lbl">Qty Available</span>
+            <span class="summary-val" [class.success]="product.inventory.quantity > product.inventory.reorderLevel" [class.danger]="product.inventory.reorderLevel > product.inventory.quantity">
+              {{ product.inventory.quantity }}
+            </span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-lbl">Stock Value</span>
+            <span class="summary-val success">
+              {{ product.maxSalePrice * product.inventory.quantity | currency:'INR':'₹':'1.0-0' }}
+            </span>
+          </div>
+          <div class="summary-divider"></div>
+        }
+        <div class="summary-item">
+          <span class="summary-lbl">Qty Sold</span>
+          <span class="summary-val">{{ salesSummary().totalQuantitySold }}</span>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-item">
+          <span class="summary-lbl">Total Sales</span>
+          <span class="summary-val">{{ salesSummary().totalPrice | currency:'INR':'₹':'1.0-0' }}</span>
+        </div>
+      </div>
+    }
+    }
+
+    @if (showDeleteDialog()) {
+    <app-confirm-dialog title="Delete Product"
+        [message]="'Are you sure you want to delete this product? This action cannot be undone.'"
+        (confirmed)="deleteProduct()" (cancelled)="showDeleteDialog.set(false)" />
+    }
+</div>

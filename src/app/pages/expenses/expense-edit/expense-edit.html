@@ -1,0 +1,80 @@
+<div class="form-page">
+  <div class="form-header">
+    <button class="icon-btn" (click)="goBack()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+    <h1 class="form-title">Edit Expense</h1>
+    <div style="width: 36px;"></div> <!-- spacer -->
+  </div>
+
+  @if (initialLoading() || categoriesLoading()) {
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Loading expense...</p>
+    </div>
+  } @else {
+    <form class="form-body" (ngSubmit)="onSubmit()" #expenseForm="ngForm">
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Date *</label>
+          <input type="date" class="form-input" [(ngModel)]="createdAtInput" name="createdAt" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Category *</label>
+          <select class="form-input" [(ngModel)]="expense.categoryId" name="categoryId" required>
+            @for (category of categories(); track category.id) {
+              <option [value]="category.id">{{ category.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Amount *</label>
+          <input type="number" class="form-input" [(ngModel)]="expense.amount" name="amount" placeholder="0.00" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Payment Mode *</label>
+          <select class="form-input" [(ngModel)]="expense.paymentMode" name="paymentMode" required>
+            @for (mode of paymentModes; track mode) {
+              <option [value]="mode">{{ mode }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Vendor Name</label>
+        <input type="text" class="form-input" [(ngModel)]="expense.vendorName" name="vendorName" placeholder="E.g., ABC Supplies">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Reference / Bill No</label>
+        <input type="text" class="form-input" [(ngModel)]="expense.referenceNumber" name="referenceNumber" placeholder="Txn ID, Bill No, etc.">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-input" [(ngModel)]="expense.description" name="description" rows="3" placeholder="What was this expense for?"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="cancel-btn" (click)="goBack()" [disabled]="loading()">Cancel</button>
+        <button type="submit" class="submit-btn" [disabled]="!expenseForm.form.valid || loading() || !expense.categoryId">
+          @if (loading()) {
+            <span class="btn-spinner"></span>
+            Updating...
+          } @else {
+            Update
+          }
+        </button>
+      </div>
+    </form>
+  }
+</div>
