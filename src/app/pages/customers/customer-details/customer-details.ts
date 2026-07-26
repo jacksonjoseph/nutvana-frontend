@@ -83,7 +83,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
                 }
                 @if (customer.salesPersonNames && customer.salesPersonNames.length > 0) {
                   <div class="view-row" style="align-items: flex-start;">
-                    <span class="view-lbl">Sales Persons</span>
+                    <span class="view-lbl">Sales Partners</span>
                     <span class="view-val" style="display: flex; flex-wrap: wrap; gap: 0.3rem;">
                       @for (name of customer.salesPersonNames; track name) {
                         <span style="font-size: 0.72rem; font-weight: 700; background: var(--accent-subtle); color: var(--accent); padding: 0.1rem 0.45rem; border-radius: 0.3rem;">
@@ -94,7 +94,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
                   </div>
                 } @else if (customer.salesPersonName) {
                   <div class="view-row">
-                    <span class="view-lbl">Sales Person</span>
+                    <span class="view-lbl">Sales Partner</span>
                     <span class="view-val" style="font-weight: 600; color: var(--accent);">{{ customer.salesPersonName }}</span>
                   </div>
                 }

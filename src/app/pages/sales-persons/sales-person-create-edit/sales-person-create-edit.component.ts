@@ -16,7 +16,7 @@ import { SalesPerson } from '../../../models/sales-person.model';
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
-        <h1 class="form-title">{{ isEdit() ? 'Edit Sales Person' : 'New Sales Person' }}</h1>
+        <h1 class="form-title">{{ isEdit() ? 'Edit Sales Partner' : 'New Sales Partner' }}</h1>
         <div style="width: 36px;"></div>
       </div>
 
@@ -84,7 +84,7 @@ import { SalesPerson } from '../../../models/sales-person.model';
               @if (saving()) {
                 <span class="btn-spinner"></span> Saving...
               } @else {
-                {{ isEdit() ? 'Save Changes' : 'Create Sales Person' }}
+                {{ isEdit() ? 'Save Changes' : 'Create Sales Partner' }}
               }
             </button>
           </div>

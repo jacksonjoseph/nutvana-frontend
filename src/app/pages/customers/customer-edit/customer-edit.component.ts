@@ -48,7 +48,7 @@ import { SalesPerson } from '../../../models/sales-person.model';
             </div>
 
             <div class="form-group">
-              <label class="form-label" style="margin-bottom: 0.5rem;">Assigned Sales Persons</label>
+              <label class="form-label" style="margin-bottom: 0.5rem;">Assigned Sales Partners</label>
               <div style="background: var(--surface-card); border: 1.5px solid var(--surface-border); border-radius: 0.75rem; padding: 0.75rem; max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
                 @for (sp of salesPersons(); track sp.id) {
                   <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; user-select: none;">

@@ -12,7 +12,7 @@ import { SalesPerson } from '../../../models/sales-person.model';
     <div class="page-container">
       <div class="page-header">
         <div>
-          <h1 class="page-title">Sales Persons</h1>
+          <h1 class="page-title">Sales Partners</h1>
           <p class="page-subtitle">{{ totalElements() }} representatives</p>
         </div>
         <button class="fab" (click)="navigateToCreate()">
@@ -59,9 +59,9 @@ import { SalesPerson } from '../../../models/sales-person.model';
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          <h3>No Sales Persons Yet</h3>
+          <h3>No Sales Partners Yet</h3>
           <p>Add your first sales representative to get started</p>
-          <button class="btn-primary" (click)="navigateToCreate()">Add Sales Person</button>
+          <button class="btn-primary" (click)="navigateToCreate()">Add Sales Partner</button>
         </div>
       } @else {
         <div class="grid">

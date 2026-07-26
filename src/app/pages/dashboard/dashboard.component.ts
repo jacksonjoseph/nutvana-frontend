@@ -120,7 +120,7 @@ import { DashboardService, OrderSummary, ExpenseSummary, StockValuation } from '
                 <span class="order-value money success">{{ stockValuation().totalStockValue | currency:'INR':'₹':'1.0-0' }}</span>
               </div>
               <div class="order-card">
-                <span class="order-label">Sales Person Stock Value</span>
+                <span class="order-label">Sales Partner Stock Value</span>
                 <span class="order-value money" style="color: #3b82f6;">{{ stockValuation().totalSalesPersonStockValue | currency:'INR':'₹':'1.0-0' }}</span>
               </div>
             </div>
