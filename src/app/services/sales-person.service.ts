@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { SalesPerson, SalesPersonInventory } from '../models/sales-person.model';
+import { SalesPerson, SalesPersonInventory, SalesPersonInventoryTransaction } from '../models/sales-person.model';
 import { PageableResponse } from '../models/pageable.model';
 import { environment } from '../../environments/environment';
 
@@ -61,6 +61,12 @@ export class SalesPersonService {
       salesPersonId,
       productId,
       quantity
+    });
+  }
+
+  getTransactions(salesPersonId: number, page: number = 0, size: number = 10): Observable<PageableResponse<SalesPersonInventoryTransaction>> {
+    return this.http.get<PageableResponse<SalesPersonInventoryTransaction>>(`${this.baseUrl}/${salesPersonId}/transactions`, {
+      params: { page, size }
     });
   }
 }

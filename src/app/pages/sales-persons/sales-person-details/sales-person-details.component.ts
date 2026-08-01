@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { SalesPersonService } from '../../../services/sales-person.service';
 import { CustomerService } from '../../../services/customer.service';
 import { ProductService } from '../../../services/product.service';
-import { SalesPerson, SalesPersonInventory } from '../../../models/sales-person.model';
+import { SalesPerson, SalesPersonInventory, SalesPersonInventoryTransaction, SalesPersonInventoryTransactionType } from '../../../models/sales-person.model';
 import { Customer } from '../../../models/customer.model';
 import { Product } from '../../../models/product.model';
 
@@ -73,6 +73,12 @@ import { Product } from '../../../models/product.model';
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
             </svg>
             Stock Inventory ({{ inventory().length }})
+          </button>
+          <button class="tab-btn" [class.active]="activeTab() === 'transactions'" (click)="activeTab.set('transactions')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Transaction Log ({{ txTotalElements() }})
           </button>
           <button class="tab-btn" [class.active]="activeTab() === 'customers'" (click)="activeTab.set('customers')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -169,6 +175,60 @@ import { Product } from '../../../models/product.model';
                   </tbody>
                 </table>
               </div>
+            }
+          </div>
+        }
+
+        <!-- Tab Content: Transactions -->
+        @if (activeTab() === 'transactions') {
+          <div class="tab-content">
+            <div class="action-row">
+              <h3 class="section-heading">Transaction Log ({{ txTotalElements() }})</h3>
+            </div>
+
+            @if (txLoading()) {
+              <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>Loading transactions...</p>
+              </div>
+            } @else {
+              <div class="transactions-list">
+                @for (txn of transactions(); track txn.id) {
+                  <div class="txn-card">
+                    <div class="txn-header">
+                      <span class="txn-type" [class]="getTypeClass(txn.transactionType)">{{ txn.transactionType.replace('_', ' ') }}</span>
+                      <span class="txn-date">{{ txn.createdAt | date:'MMM d, yyyy, h:mm a' }}</span>
+                    </div>
+                    <div class="txn-body">
+                      <div>
+                        <p class="product-info-label" style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">{{ txn.productName }}</p>
+                        <p class="txn-desc">{{ txn.notes || 'No notes' }}</p>
+                        @if (txn.referenceId) {
+                          <span class="txn-ref">REF: {{ txn.referenceId }}</span>
+                        }
+                      </div>
+                      <div class="txn-qty" [class]="getTypeClass(txn.transactionType)">
+                        {{ getTypeClass(txn.transactionType) === 'danger' ? '' : '+' }}{{ txn.quantity }}
+                      </div>
+                    </div>
+                  </div>
+                } @empty {
+                  <div class="empty-state-card">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4">
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                    <p>No transactions recorded for this representative.</p>
+                  </div>
+                }
+              </div>
+
+              @if (txTotalPages() > 1) {
+                <div class="pagination">
+                  <button class="btn-page" [disabled]="txCurrentPage() === 0 || txLoading()" (click)="loadTransactions(txCurrentPage() - 1)">Previous</button>
+                  <span class="page-info">Page {{ txCurrentPage() + 1 }} of {{ txTotalPages() }}</span>
+                  <button class="btn-page" [disabled]="txCurrentPage() >= txTotalPages() - 1 || txLoading()" (click)="loadTransactions(txCurrentPage() + 1)">Next</button>
+                </div>
+              }
             }
           </div>
         }
@@ -1010,6 +1070,105 @@ import { Product } from '../../../models/product.model';
       justify-content: center;
     }
 
+    .transactions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .txn-card {
+      background: var(--surface-card);
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px solid var(--surface-border);
+    }
+
+    .txn-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .txn-type {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 0.15rem 0.5rem;
+      border-radius: 0.4rem;
+    }
+
+    .txn-type.success {
+      background: var(--success-subtle);
+      color: var(--success);
+    }
+
+    .txn-type.danger {
+      background: var(--danger-subtle);
+      color: var(--danger);
+    }
+
+    .txn-date {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .txn-body {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .txn-desc {
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .txn-ref {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--accent);
+      opacity: 0.8;
+      display: block;
+    }
+
+    .txn-qty {
+      font-size: 1.1rem;
+      font-weight: 800;
+    }
+
+    .txn-qty.success { color: var(--success); }
+    .txn-qty.danger { color: var(--danger); }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .btn-page {
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-page:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--surface-hover);
+    }
+
+    .btn-page:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp {
       from { transform: translateY(20px); opacity: 0; }
@@ -1029,8 +1188,14 @@ export class SalesPersonDetailsComponent implements OnInit {
   inventory = signal<SalesPersonInventory[]>([]);
   linkedCustomers = signal<Customer[]>([]);
   allCustomers = signal<Customer[]>([]);
+  transactions = signal<SalesPersonInventoryTransaction[]>([]);
 
   loading = signal(true);
+  txLoading = signal(false);
+  txCurrentPage = signal(0);
+  txTotalPages = signal(0);
+  txTotalElements = signal(0);
+  txPageSize = signal(15);
   activeTab = signal('inventory');
 
   // Modals signals
@@ -1074,6 +1239,7 @@ export class SalesPersonDetailsComponent implements OnInit {
         this.salesPerson = data;
         this.loadInventory();
         this.loadCustomers();
+        this.loadTransactions();
       },
       error: () => {
         this.loading.set(false);
@@ -1088,6 +1254,32 @@ export class SalesPersonDetailsComponent implements OnInit {
         this.inventory.set(data);
       }
     });
+  }
+
+  loadTransactions(page: number = 0) {
+    this.txLoading.set(true);
+    this.salesPersonService.getTransactions(this.salesPersonId, page, this.txPageSize()).subscribe({
+      next: (data) => {
+        this.transactions.set(data.content);
+        this.txCurrentPage.set(data.page.number);
+        this.txTotalPages.set(data.page.totalPages);
+        this.txTotalElements.set(data.page.totalElements);
+        this.txLoading.set(false);
+      },
+      error: () => {
+        this.txLoading.set(false);
+      }
+    });
+  }
+
+  getTypeClass(type: SalesPersonInventoryTransactionType): string {
+    const redTypes = [
+      SalesPersonInventoryTransactionType.SALE,
+      SalesPersonInventoryTransactionType.RETURN,
+      SalesPersonInventoryTransactionType.WASTAGE,
+      SalesPersonInventoryTransactionType.ADJUSTMENT_OUT
+    ];
+    return redTypes.includes(type) ? 'danger' : 'success';
   }
 
   loadCustomers() {
@@ -1204,6 +1396,7 @@ export class SalesPersonDetailsComponent implements OnInit {
         this.submittingAlloc.set(false);
         this.showAllocateModal.set(false);
         this.loadInventory(); // Reload
+        this.loadTransactions(); // Reload transactions
       },
       error: () => {
         this.submittingAlloc.set(false);
@@ -1240,6 +1433,7 @@ export class SalesPersonDetailsComponent implements OnInit {
         this.submittingReturn.set(false);
         this.showReturnModal.set(false);
         this.loadInventory(); // Reload
+        this.loadTransactions(); // Reload transactions
       },
       error: () => {
         this.submittingReturn.set(false);

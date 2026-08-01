@@ -115,6 +115,10 @@ import { DashboardService, OrderSummary, ExpenseSummary, StockValuation } from '
               <span>Stock Valuation</span>
             </div>
             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <div class="order-card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%); border-color: rgba(99, 102, 241, 0.3);">
+                <span class="order-label" style="color: var(--accent-light);">Total Stock Value</span>
+                <span class="order-value money" style="background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800;">{{ (stockValuation().totalStockValue + stockValuation().totalSalesPersonStockValue) | currency:'INR':'₹':'1.0-0' }}</span>
+              </div>
               <div class="order-card">
                 <span class="order-label">Warehouse Stock Value</span>
                 <span class="order-value money success">{{ stockValuation().totalStockValue | currency:'INR':'₹':'1.0-0' }}</span>

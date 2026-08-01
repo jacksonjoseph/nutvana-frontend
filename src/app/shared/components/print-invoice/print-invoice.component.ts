@@ -52,7 +52,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
         <div class="invoice-preview" id="print-area">
           <div class="invoice-header">
             <div class="company-info">
-              <h1 class="company-name">Yumzivo Enterprises</h1>
+              <h1 class="company-name">Nutvana Enterprises</h1>
               <p class="company-address">Meadows Lane, Nalumukku,</p>
               <p class="company-address">Thundathil PO, Kariyavattom,</p>
               <p class="company-address">Thiruvananthapuram, PIN: 695581</p>
@@ -463,7 +463,7 @@ export class PrintInvoiceComponent {
       </head>
       <body>
         <div class="receipt">
-          <div class="company-name">Yumzivo Enterprises</div>
+          <div class="company-name">Nutvana Enterprises</div>
           <div class="company-address">Meadows Lane, Nalumukku</div>
           <div class="company-address">Thundathil PO, Kariyavattom</div>
           <div class="company-address">TVM, PIN: 695581</div>
@@ -624,9 +624,9 @@ export class PrintInvoiceComponent {
         </style>
       </head>
       <body>
-        <div class="invoice-header">
+        <div class="invoice-header">s
           <div>
-            <div class="company-name">Yumzivo Enterprises</div>
+            <div class="company-name">Nutvana Enterprises</div>
             <p class="company-address">Meadows Lane, Nalumukku,</p>
             <p class="company-address">Thundathil PO, Kariyavattom,</p>
             <p class="company-address">Thiruvananthapuram, PIN: 695581</p>
