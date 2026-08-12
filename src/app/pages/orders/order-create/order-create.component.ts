@@ -6,7 +6,7 @@ import { OrderService } from '../../../services/order.service';
 import { CustomerService } from '../../../services/customer.service';
 import { ProductService } from '../../../services/product.service';
 import { SalesPersonService } from '../../../services/sales-person.service';
-import { Order, OrderItem } from '../../../models/order.model';
+import { Order, OrderItem, BillParseResult } from '../../../models/order.model';
 import { Customer } from '../../../models/customer.model';
 import { Product } from '../../../models/product.model';
 import { SalesPersonInventory } from '../../../models/sales-person.model';
@@ -28,6 +28,58 @@ import { SalesPersonInventory } from '../../../models/sales-person.model';
       </div>
 
       <form class="form-body" (ngSubmit)="onSubmit()">
+        <!-- Auto-fill from Bill Section -->
+        <div class="section" style="margin-bottom: 1.5rem;">
+          <h2 class="section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Auto-fill from Bill (Optional)
+          </h2>
+          
+          <div class="upload-zone" 
+               [class.drag-over]="isDragOver()"
+               (dragover)="onDragOver($event)"
+               (dragleave)="onDragLeave($event)"
+               (drop)="onDrop($event)"
+               (click)="fileInput.click()">
+            <input 
+              #fileInput 
+              type="file" 
+              accept="image/*,application/pdf" 
+              style="display: none;" 
+              (change)="onFileSelected($event)" 
+            />
+            
+            @if (parsingBill()) {
+              <div class="upload-content">
+                <span class="btn-spinner" style="border-top-color: var(--accent); width: 24px; height: 24px; margin-bottom: 0.5rem;"></span>
+                <p class="upload-text">Processing bill with Gemini...</p>
+                <p class="upload-subtext">Extracting items, prices, and totals</p>
+              </div>
+            } @else {
+              <div class="upload-content">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="margin-bottom: 0.5rem;">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="12" y1="18" x2="12" y2="12"/>
+                  <line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
+                <p class="upload-text">Drag & drop your bill, or <span style="color: var(--accent); font-weight: 600; text-decoration: underline;">browse</span></p>
+                <p class="upload-subtext">Supports PNG, JPG, WEBP, and PDF</p>
+              </div>
+            }
+          </div>
+          @if (parseError()) {
+            <div class="parse-error-message">
+              <span>⚠️</span>
+              <div>{{ parseError() }}</div>
+            </div>
+          }
+        </div>
+
         <!-- Order Date Section -->
         <div class="section">
           <h2 class="section-title">
@@ -197,10 +249,15 @@ import { SalesPersonInventory } from '../../../models/sales-person.model';
                 @if (activeProductSearchIndex() === i && productResults().length > 0) {
                   <div class="search-results">
                     @for (product of productResults(); track product.id) {
-                      <button type="button" class="search-result-item" (click)="selectProduct(product, i)">
+                      <button type="button" class="search-result-item" [disabled]="isProductAlreadySelected(product.id, i)" (click)="selectProduct(product, i)">
                         <div class="result-badge">{{ product.code }}</div>
                         <div class="result-info">
-                          <div class="result-name">{{ product.name }}</div>
+                          <div class="result-name">
+                            {{ product.name }}
+                            @if (isProductAlreadySelected(product.id, i)) {
+                              <span style="color: var(--danger); font-size: 0.72rem; margin-left: 0.5rem; font-weight: normal; background: var(--danger-subtle); padding: 0.15rem 0.4rem; border-radius: 0.25rem;">Already Selected</span>
+                            }
+                          </div>
                           <div class="result-detail">MRP: {{ product.maxRetailPrice | currency:'INR':'₹':'1.2-2' }} · Sale: {{ product.maxSalePrice | currency:'INR':'₹':'1.2-2' }}</div>
                         </div>
                       </button>
@@ -439,6 +496,12 @@ import { SalesPersonInventory } from '../../../models/sales-person.model';
 
     .search-result-item:hover {
       background: var(--surface-hover);
+    }
+
+    .search-result-item:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: none;
     }
 
     .search-result-item + .search-result-item {
@@ -767,6 +830,58 @@ import { SalesPersonInventory } from '../../../models/sales-person.model';
       font-weight: 600;
     }
 
+    .upload-zone {
+      border: 2px dashed var(--surface-border);
+      border-radius: 1rem;
+      background: var(--surface-card);
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 120px;
+      box-sizing: border-box;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.04);
+      box-shadow: 0 0 0 4px var(--accent-subtle);
+    }
+    .upload-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .upload-text {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin: 0.25rem 0 0;
+    }
+    .upload-subtext {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+    .parse-error-message {
+      color: var(--danger);
+      background: var(--danger-subtle);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      font-size: 0.8rem;
+      margin-top: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-align: left;
+      box-sizing: border-box;
+    }
+
     @keyframes spin { to { transform: rotate(360deg); } }
   `]
 })
@@ -805,6 +920,11 @@ export class OrderCreateComponent implements OnInit {
 
   // Direct sale mode
   isDirectSale = signal(false);
+
+  // Bill parsing state
+  parsingBill = signal(false);
+  parseError = signal('');
+  isDragOver = signal(false);
 
   ngOnInit() {
     // Initialize order date
@@ -892,6 +1012,88 @@ export class OrderCreateComponent implements OnInit {
     }
   }
 
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(true);
+  }
+
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+  }
+
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+    
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      this.processBillFile(files[0]);
+    }
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.processBillFile(input.files[0]);
+    }
+  }
+
+  processBillFile(file: File) {
+    this.parsingBill.set(true);
+    this.parseError.set('');
+
+    this.orderService.parseBill(file).subscribe({
+      next: (result) => {
+        this.parsingBill.set(false);
+        this.populateParsedBill(result);
+      },
+      error: (err) => {
+        this.parsingBill.set(false);
+        console.error('Failed to parse bill:', err);
+        let errorMsg = 'Failed to parse the bill. Please make sure the Gemini API key is configured correctly in application.properties.';
+        if (err && err.error) {
+          if (typeof err.error === 'string') {
+            errorMsg = err.error;
+          } else if (err.error.message) {
+            errorMsg = err.error.message;
+          }
+        }
+        this.parseError.set(errorMsg);
+      }
+    });
+  }
+
+  populateParsedBill(result: BillParseResult) {
+    if (!result || !result.items || result.items.length === 0) {
+      this.parseError.set('No items were extracted from the uploaded bill.');
+      return;
+    }
+
+    const items: OrderItem[] = result.items.map(parsedItem => {
+      const hasMatch = !!parsedItem.matchedProduct;
+      return {
+        productId: hasMatch ? parsedItem.matchedProduct!.id : 0,
+        productName: hasMatch ? parsedItem.matchedProduct!.name : undefined,
+        quantity: parsedItem.quantity || 1,
+        unitPrice: hasMatch ? parsedItem.matchedProduct!.maxSalePrice : (parsedItem.unitPrice || 0)
+      };
+    });
+
+    this.orderItems.set(items);
+    this.discount = result.discount || 0;
+    this.amountCollected = result.amountCollected || 0;
+    this.calculateTotal();
+
+    // Clear product search term state
+    const searchTerms = items.map(() => '');
+    this.productSearchTerms.set(searchTerms);
+    this.activeProductSearchIndex.set(-1);
+  }
+
   removeCustomer() {
     this.selectedCustomer.set(null);
     this.isSalesPersonLinked.set(false);
@@ -957,10 +1159,20 @@ export class OrderCreateComponent implements OnInit {
     return this.salesPersonStockMap().get(productId) ?? 0;
   }
 
+  isProductAlreadySelected(productId: number | undefined, currentIndex: number): boolean {
+    if (!productId) return false;
+    return this.orderItems().some((item, idx) => item.productId === productId && idx !== currentIndex);
+  }
+
   isValid(): boolean {
     const hasItems = this.orderItems().length > 0 &&
       this.orderItems().every(item => item.productId > 0 && item.quantity > 0 && item.unitPrice > 0);
     if (!hasItems) return false;
+
+    // Check for duplicate products
+    const productIds = this.orderItems().map(item => item.productId).filter(id => id > 0);
+    const hasDuplicates = productIds.some((id, index) => productIds.indexOf(id) !== index);
+    if (hasDuplicates) return false;
 
     if (this.isDirectSale()) {
       return true;

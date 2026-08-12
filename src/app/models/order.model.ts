@@ -20,3 +20,24 @@ export interface Order {
   orderDate?: string;
   totalAmount?: number;
 }
+
+export interface ParsedBillItem {
+  extractedName: string;
+  matchedProduct?: {
+    id: number;
+    name: string;
+    code: string;
+    maxRetailPrice: number;
+    maxSalePrice: number;
+  };
+  quantity: number;
+  unitPrice: number;
+  confidence: number;
+}
+
+export interface BillParseResult {
+  items: ParsedBillItem[];
+  discount: number;
+  amountCollected: number;
+}
+

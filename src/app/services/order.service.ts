@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Order } from '../models/order.model';
+import { Order, BillParseResult } from '../models/order.model';
 import { PageableResponse } from '../models/pageable.model';
 import { environment } from '../../environments/environment';
 
@@ -72,5 +72,11 @@ export class OrderService {
       params.endDate = endDate;
     }
     return this.http.get<{ totalCountSold: number, totalCollected: number, totalBalance: number }>(`${this.baseUrl}/filtered-summary`, { params });
+  }
+
+  parseBill(file: File): Observable<BillParseResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<BillParseResult>(`${this.baseUrl}/parse-bill`, formData);
   }
 }

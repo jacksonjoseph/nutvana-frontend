@@ -202,10 +202,15 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
                   @if (activeProductSearchIndex() === i && productResults().length > 0) {
                     <div class="search-results">
                       @for (product of productResults(); track product.id) {
-                        <button type="button" class="search-result-item" (click)="selectProduct(product, i)">
+                        <button type="button" class="search-result-item" [disabled]="isProductAlreadySelected(product.id, i)" (click)="selectProduct(product, i)">
                           <div class="result-badge">{{ product.code }}</div>
                           <div class="result-info">
-                            <div class="result-name">{{ product.name }}</div>
+                            <div class="result-name">
+                              {{ product.name }}
+                              @if (isProductAlreadySelected(product.id, i)) {
+                                <span style="color: var(--danger); font-size: 0.72rem; margin-left: 0.5rem; font-weight: normal; background: var(--danger-subtle); padding: 0.15rem 0.4rem; border-radius: 0.25rem;">Already Selected</span>
+                              }
+                            </div>
                             <div class="result-detail">Sale: {{ product.maxSalePrice | currency:'INR':'₹':'1.2-2' }}</div>
                           </div>
                         </button>
@@ -564,6 +569,12 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
     }
 
     .search-result-item:hover { background: var(--surface-hover); }
+
+    .search-result-item:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: none;
+    }
 
     .search-result-item + .search-result-item {
       border-top: 1px solid var(--surface-border);
@@ -1049,7 +1060,17 @@ export class OrderEditComponent implements OnInit {
     this.calculatedTotal.set(total);
   }
 
+  isProductAlreadySelected(productId: number | undefined, currentIndex: number): boolean {
+    if (!productId) return false;
+    return this.orderItems().some((item, idx) => item.productId === productId && idx !== currentIndex);
+  }
+
   isValid(): boolean {
+    // Check for duplicate products
+    const productIds = this.orderItems().map(item => item.productId).filter(id => id > 0);
+    const hasDuplicates = productIds.some((id, index) => productIds.indexOf(id) !== index);
+    if (hasDuplicates) return false;
+
     const hasCustomerOrDirect = this.isDirectSale() || !!this.selectedCustomer();
     return hasCustomerOrDirect && this.orderItems().length > 0 &&
       this.orderItems().every(item => item.productId > 0 && item.quantity > 0 && item.unitPrice > 0);
