@@ -1088,8 +1088,8 @@ export class OrderCreateComponent implements OnInit {
     this.amountCollected = result.amountCollected || 0;
     this.calculateTotal();
 
-    // Clear product search term state
-    const searchTerms = items.map(() => '');
+    // Set product search term state to extractedName if not matched
+    const searchTerms = result.items.map(parsedItem => parsedItem.matchedProduct ? '' : (parsedItem.extractedName || ''));
     this.productSearchTerms.set(searchTerms);
     this.activeProductSearchIndex.set(-1);
   }
