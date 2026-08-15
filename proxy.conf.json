@@ -1,6 +1,6 @@
 {
   "/nutvana-orders/api": {
-    "target": "http://localhost:8080",
+    "target": "https://nutvana-backend.onrender.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
