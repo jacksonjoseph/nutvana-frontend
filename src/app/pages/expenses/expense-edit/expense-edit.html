@@ -49,10 +49,54 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">Vendor Name</label>
-        <input type="text" class="form-input" [(ngModel)]="expense.vendorName" name="vendorName" placeholder="E.g., ABC Supplies">
-      </div>
+      @if (isLaborCategorySelected()) {
+        <div class="form-group" style="background: var(--surface-hover); padding: 1rem; border-radius: 0.5rem; border: 1.5px dashed var(--surface-border); margin-bottom: 1.25rem;">
+          @if (showAddLaborForm()) {
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">Create New Helping Partner</span>
+              <button type="button" (click)="toggleAddLaborForm()" style="background: none; border: none; color: var(--accent); font-size: 0.8rem; font-weight: 700; cursor: pointer;">Cancel</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.75rem;">Helping Partner Name *</label>
+                <input type="text" class="form-input" [(ngModel)]="newLaborName" name="newLaborName" placeholder="E.g., Arjun K" style="padding: 0.4rem; font-size: 0.85rem;" />
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.75rem;">Phone Number (Optional)</label>
+                <input type="text" class="form-input" [(ngModel)]="newLaborPhone" name="newLaborPhone" placeholder="E.g., 9876543210" style="padding: 0.4rem; font-size: 0.85rem;" />
+              </div>
+              <button type="button" class="submit-btn" (click)="saveNewLabor()" [disabled]="!newLaborName.trim() || laborSaving()" style="padding: 0.45rem; font-size: 0.8rem; align-self: flex-start; margin-top: 0.25rem;">
+                @if (laborSaving()) { Saving... } @else { Save Helping Partner }
+              </button>
+            </div>
+          } @else {
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+              <label class="form-label" style="margin-bottom: 0; font-weight: 600;">Helping Partner *</label>
+              <button type="button" (click)="toggleAddLaborForm()" style="background: none; border: none; color: var(--accent); font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.2rem; padding: 0;">
+                <span>+ Create New Helping Partner</span>
+              </button>
+            </div>
+            <select class="form-input" [ngModel]="selectedPartnerKey()" (ngModelChange)="onPartnerChange($event)" name="partnerKey" style="padding: 0.5rem; font-size: 0.85rem;" required>
+              <option [value]="undefined" disabled selected>Select Helping Partner...</option>
+              <optgroup label="Helping Partners">
+                @for (labor of allLabors(); track 'labor_' + labor.id) {
+                  <option [value]="'labor_' + labor.id">{{ labor.name }} @if (labor.phone) { ({{ labor.phone }}) }</option>
+                }
+              </optgroup>
+              <optgroup label="Sales Partners">
+                @for (sp of allSalesPersons(); track 'sp_' + sp.id) {
+                  <option [value]="'sp_' + sp.id">{{ sp.name }}</option>
+                }
+              </optgroup>
+            </select>
+          }
+        </div>
+      } @else {
+        <div class="form-group">
+          <label class="form-label">Vendor Name</label>
+          <input type="text" class="form-input" [(ngModel)]="expense.vendorName" name="vendorName" placeholder="E.g., ABC Supplies">
+        </div>
+      }
 
       <div class="form-group">
         <label class="form-label">Reference / Bill No</label>

@@ -1,6 +1,7 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { OrderService } from '../../../services/order.service';
 import { SalesPersonService } from '../../../services/sales-person.service';
 import { Order } from '../../../models/order.model';
@@ -571,11 +572,14 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
     }
   `]
 })
-export class OrderListComponent implements OnInit {
+export class OrderListComponent implements OnInit, OnDestroy {
   private orderService = inject(OrderService);
   private salesPersonService = inject(SalesPersonService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+
+  private ordersSubscription?: Subscription;
+  private summarySubscription?: Subscription;
 
   orders = signal<Order[]>([]);
   salesPersons = signal<SalesPerson[]>([]);
@@ -596,11 +600,28 @@ export class OrderListComponent implements OnInit {
 
   ngOnInit() {
     const paymentDue = this.route.snapshot.queryParamMap.get('paymentDue');
-    if (paymentDue === 'true') {
+    if (this.orderService.filterState) {
+      const state = this.orderService.filterState;
+      this.startDate.set(state.startDate);
+      this.endDate.set(state.endDate);
+      this.paymentDueFilter.set(state.paymentDueFilter);
+      this.directSaleFilter.set(state.directSaleFilter);
+      this.selectedSalesPersonIds.set(state.selectedSalesPersonIds);
+      this.currentPage.set(state.currentPage);
+    } else if (paymentDue === 'true') {
       this.paymentDueFilter.set(true);
     }
     this.loadSalesPersons();
-    this.loadOrders();
+    this.loadOrders(this.currentPage());
+  }
+
+  ngOnDestroy() {
+    if (this.ordersSubscription) {
+      this.ordersSubscription.unsubscribe();
+    }
+    if (this.summarySubscription) {
+      this.summarySubscription.unsubscribe();
+    }
   }
 
   loadSalesPersons() {
@@ -612,6 +633,10 @@ export class OrderListComponent implements OnInit {
   }
 
   loadSummary() {
+    if (this.summarySubscription) {
+      this.summarySubscription.unsubscribe();
+    }
+
     let startIso: string | undefined = undefined;
     if (this.startDate()) {
       startIso = `${this.startDate()}T00:00:00`;
@@ -624,7 +649,7 @@ export class OrderListComponent implements OnInit {
 
     const isDirectSaleVal = this.directSaleFilter() ? true : undefined;
 
-    this.orderService.getFilteredSummary(
+    this.summarySubscription = this.orderService.getFilteredSummary(
       this.paymentDueFilter(),
       isDirectSaleVal,
       this.selectedSalesPersonIds(),
@@ -645,6 +670,10 @@ export class OrderListComponent implements OnInit {
   }
 
   loadOrders(page: number = 0) {
+    if (this.ordersSubscription) {
+      this.ordersSubscription.unsubscribe();
+    }
+
     this.loading.set(true);
     this.loadSummary();
 
@@ -660,7 +689,17 @@ export class OrderListComponent implements OnInit {
 
     const isDirectSaleVal = this.directSaleFilter() ? true : undefined;
 
-    this.orderService.getAll(
+    // Persist current filters/page state in the service
+    this.orderService.filterState = {
+      startDate: this.startDate(),
+      endDate: this.endDate(),
+      paymentDueFilter: this.paymentDueFilter(),
+      directSaleFilter: this.directSaleFilter(),
+      selectedSalesPersonIds: this.selectedSalesPersonIds(),
+      currentPage: page
+    };
+
+    this.ordersSubscription = this.orderService.getAll(
       page,
       this.pageSize(),
       this.paymentDueFilter(),
@@ -723,6 +762,8 @@ export class OrderListComponent implements OnInit {
     this.endDate.set('');
     this.paymentDueFilter.set(false);
     this.directSaleFilter.set(false);
+    this.currentPage.set(0);
+    this.orderService.filterState = undefined;
     this.loadOrders(0);
   }
 

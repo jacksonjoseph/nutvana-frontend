@@ -127,7 +127,7 @@
           </div>
 
           <div class="card-footer">
-            <div class="vendor-name">{{ expense.vendorName || 'N/A' }}</div>
+            <div class="vendor-name">{{ expense.laborName || expense.salesPersonName || expense.vendorName || 'N/A' }}</div>
             <div class="payment-mode">{{ expense.paymentMode }}</div>
           </div>
         </div>

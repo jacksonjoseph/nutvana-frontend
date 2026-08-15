@@ -12,6 +12,15 @@ export class OrderService {
   private http = inject(HttpClient);
   private baseUrl = `${environment.apiUrl}/orders`;
 
+  filterState?: {
+    startDate: string;
+    endDate: string;
+    paymentDueFilter: boolean;
+    directSaleFilter: boolean;
+    selectedSalesPersonIds: number[];
+    currentPage: number;
+  };
+
   getAll(page: number = 0, size: number = 10, paymentDue: boolean = false, isDirectSale?: boolean, salesPersonIds?: number[], startDate?: string, endDate?: string): Observable<PageableResponse<Order>> {
     const params: any = { page, size };
     if (paymentDue) {

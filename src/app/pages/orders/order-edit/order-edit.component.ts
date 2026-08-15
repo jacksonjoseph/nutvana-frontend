@@ -8,6 +8,8 @@ import { ProductService } from '../../../services/product.service';
 import { Order, OrderItem } from '../../../models/order.model';
 import { Customer } from '../../../models/customer.model';
 import { Product } from '../../../models/product.model';
+import { SalesPerson } from '../../../models/sales-person.model';
+import { SalesPersonService } from '../../../services/sales-person.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/print-invoice.component';
 
@@ -94,6 +96,24 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
                   Revenue will be recorded. Customer and stock custody requirements are bypassed.
                 </div>
               </div>
+              @if (allSalesPersons().length > 0) {
+                <div class="form-group" style="margin-top: 0.75rem; max-width: 350px;">
+                  <label class="form-label" for="directSalesPerson" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">Fulfilled by Sales Representative</label>
+                  <select
+                    id="directSalesPerson"
+                    class="form-input"
+                    [ngModel]="selectedSalesPersonId()"
+                    (ngModelChange)="onSalesPersonChange($event)"
+                    name="salesPersonId"
+                    style="padding: 0.5rem; font-size: 0.85rem;"
+                  >
+                    <option [value]="null">Select Salesperson (Optional)</option>
+                    @for (sp of allSalesPersons(); track sp.id) {
+                      <option [value]="sp.id">{{ sp.name }}</option>
+                    }
+                  </select>
+                </div>
+              }
             } @else if (selectedCustomer()) {
               <div class="selected-chip">
                 <div class="chip-avatar">{{ getInitials(selectedCustomer()!.name) }}</div>
@@ -116,7 +136,7 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
                     id="orderSalesPerson"
                     class="form-input"
                     [ngModel]="selectedSalesPersonId()"
-                    (ngModelChange)="selectedSalesPersonId.set(+$event)"
+                    (ngModelChange)="onSalesPersonChange($event)"
                     name="salesPersonId"
                     style="padding: 0.5rem; font-size: 0.85rem;"
                   >
@@ -893,6 +913,7 @@ export class OrderEditComponent implements OnInit {
   private orderService = inject(OrderService);
   private customerService = inject(CustomerService);
   private productService = inject(ProductService);
+  private salesPersonService = inject(SalesPersonService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
@@ -908,6 +929,7 @@ export class OrderEditComponent implements OnInit {
   customerResults = signal<Customer[]>([]);
   isDirectSale = signal<boolean>(false);
   selectedSalesPersonId = signal<number | null>(null);
+  allSalesPersons = signal<SalesPerson[]>([]);
 
   // Product search
   productSearchTerms = signal<string[]>([]);
@@ -921,6 +943,11 @@ export class OrderEditComponent implements OnInit {
   calculatedTotal = signal(0);
 
   ngOnInit() {
+    this.salesPersonService.getAll(0, 100).subscribe({
+      next: (res) => this.allSalesPersons.set(res.content || []),
+      error: (err) => console.error('Failed to load salespersons', err)
+    });
+
     this.orderId = Number(this.route.snapshot.paramMap.get('id'));
     this.orderService.getById(this.orderId).subscribe({
       next: (order) => {
@@ -965,7 +992,12 @@ export class OrderEditComponent implements OnInit {
     this.isDirectSale.set(value);
     if (value) {
       this.selectedCustomer.set(null);
+      this.selectedSalesPersonId.set(null);
     }
+  }
+
+  onSalesPersonChange(spId: any) {
+    this.selectedSalesPersonId.set(spId && spId !== 'null' ? Number(spId) : null);
   }
 
   onCustomerSearch(term: string) {
@@ -1098,7 +1130,7 @@ export class OrderEditComponent implements OnInit {
     const order: Order = {
       customerId: this.isDirectSale() ? undefined : this.selectedCustomer()?.id,
       isDirectSale: this.isDirectSale(),
-      salesPersonId: this.isDirectSale() ? undefined : (this.selectedSalesPersonId() || undefined),
+      salesPersonId: this.selectedSalesPersonId() || undefined,
       amountCollected: this.amountCollected,
       discount: this.discount || 0,
       orderDate: formattedDate,

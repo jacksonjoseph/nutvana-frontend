@@ -9,7 +9,7 @@ import { SalesPersonService } from '../../../services/sales-person.service';
 import { Order, OrderItem, BillParseResult } from '../../../models/order.model';
 import { Customer } from '../../../models/customer.model';
 import { Product } from '../../../models/product.model';
-import { SalesPersonInventory } from '../../../models/sales-person.model';
+import { SalesPerson, SalesPersonInventory } from '../../../models/sales-person.model';
 
 @Component({
   selector: 'app-order-create',
@@ -140,6 +140,24 @@ import { SalesPersonInventory } from '../../../models/sales-person.model';
                 Revenue will be recorded. Customer and stock custody requirements are bypassed.
               </div>
             </div>
+            @if (allSalesPersons().length > 0) {
+              <div class="form-group" style="margin-top: 0.75rem; max-width: 350px;">
+                <label class="form-label" for="directSalesPerson" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">Fulfilled by Sales Representative</label>
+                <select
+                  id="directSalesPerson"
+                  class="form-input"
+                  [ngModel]="selectedSalesPersonId()"
+                  (ngModelChange)="onSalesPersonChange($event)"
+                  name="salesPersonId"
+                  style="padding: 0.5rem; font-size: 0.85rem;"
+                >
+                  <option [value]="null">Select Salesperson (Optional)</option>
+                  @for (sp of allSalesPersons(); track sp.id) {
+                    <option [value]="sp.id">{{ sp.name }}</option>
+                  }
+                </select>
+              </div>
+            }
           } @else if (selectedCustomer()) {
             <div class="selected-chip">
               <div class="chip-avatar">{{ getInitials(selectedCustomer()!.name) }}</div>
@@ -161,7 +179,7 @@ import { SalesPersonInventory } from '../../../models/sales-person.model';
                   id="orderSalesPerson"
                   class="form-input"
                   [ngModel]="selectedSalesPersonId()"
-                  (ngModelChange)="onSalesPersonChange(+$event)"
+                  (ngModelChange)="onSalesPersonChange($event)"
                   name="salesPersonId"
                   style="padding: 0.5rem; font-size: 0.85rem;"
                 >
@@ -908,6 +926,7 @@ export class OrderCreateComponent implements OnInit {
   isSalesPersonLinked = signal(false);
   salesPersonName = signal('');
   selectedSalesPersonId = signal<number | null>(null);
+  allSalesPersons = signal<SalesPerson[]>([]);
 
   // Order items
   orderItems = signal<OrderItem[]>([]);
@@ -933,6 +952,12 @@ export class OrderCreateComponent implements OnInit {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     this.orderDateInput = `${year}-${month}-${day}`;
+
+    // Load all active salespersons for direct sales
+    this.salesPersonService.getAll(0, 100).subscribe({
+      next: (res) => this.allSalesPersons.set(res.content || []),
+      error: (err) => console.error('Failed to load salespersons', err)
+    });
 
     const customerId = this.route.snapshot.queryParamMap.get('customerId');
     if (customerId) {
@@ -988,9 +1013,15 @@ export class OrderCreateComponent implements OnInit {
     });
   }
 
-  onSalesPersonChange(spId: number) {
-    this.selectedSalesPersonId.set(spId);
-    this.loadSalesPersonInventory(spId);
+  onSalesPersonChange(spId: any) {
+    const id = spId && spId !== 'null' ? Number(spId) : null;
+    this.selectedSalesPersonId.set(id);
+    if (id && !this.isDirectSale()) {
+      this.loadSalesPersonInventory(id);
+    } else {
+      this.isSalesPersonLinked.set(false);
+      this.salesPersonStockMap.set(new Map());
+    }
   }
 
   getSalesPersonsForCustomer(): { id: number; name: string }[] {
@@ -1009,6 +1040,7 @@ export class OrderCreateComponent implements OnInit {
       this.isSalesPersonLinked.set(false);
       this.salesPersonName.set('');
       this.salesPersonStockMap.set(new Map());
+      this.selectedSalesPersonId.set(null);
     }
   }
 
@@ -1213,7 +1245,7 @@ export class OrderCreateComponent implements OnInit {
     const order: Order = {
       isDirectSale: this.isDirectSale(),
       customerId: this.isDirectSale() ? undefined : this.selectedCustomer()?.id,
-      salesPersonId: this.isDirectSale() ? undefined : (this.selectedSalesPersonId() || undefined),
+      salesPersonId: this.selectedSalesPersonId() || undefined,
       amountCollected: this.amountCollected,
       discount: this.discount || 0,
       orderDate: formattedDate,

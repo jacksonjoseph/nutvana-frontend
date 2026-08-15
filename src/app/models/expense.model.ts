@@ -16,5 +16,9 @@ export interface Expense {
   description?: string;
   referenceNumber?: string;
   vendorName?: string;
+  laborId?: number;
+  laborName?: string;
+  salesPersonId?: number;
+  salesPersonName?: string;
   createdAt?: string;
 }
