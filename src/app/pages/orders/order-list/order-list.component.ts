@@ -6,6 +6,7 @@ import { OrderService } from '../../../services/order.service';
 import { SalesPersonService } from '../../../services/sales-person.service';
 import { Order } from '../../../models/order.model';
 import { SalesPerson } from '../../../models/sales-person.model';
+import { OrderPayment } from '../../../models/order-payment.model';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 
 @Component({
@@ -27,8 +28,18 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
         </button>
       </div>
 
-      <div class="filter-bar" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; align-items: center; justify-content: space-between;">
-        <div style="display: flex; gap: 0.5rem; align-items: center; position: relative;">
+      <div class="tabs-container" style="display: flex; border-bottom: 2px solid var(--surface-border); margin-bottom: 1.25rem;">
+        <button class="tab-btn" [class.active]="activeTab() === 'orders'" (click)="setTab('orders')">
+          Orders
+        </button>
+        <button class="tab-btn" [class.active]="activeTab() === 'payments'" (click)="setTab('payments')">
+          Recent Payments
+        </button>
+      </div>
+
+      @if (activeTab() === 'orders') {
+        <div class="filter-bar" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; align-items: center; justify-content: space-between;">
+          <div style="display: flex; gap: 0.5rem; align-items: center; position: relative;">
           <button class="filter-chip" [class.active]="paymentDueFilter()" (click)="togglePaymentDueFilter()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="1" x2="12" y2="23"/>
@@ -264,6 +275,54 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
             <button class="btn-page" [disabled]="currentPage() === 0 || loading()" (click)="loadOrders(currentPage() - 1)">Previous</button>
             <span class="page-info">Page {{ currentPage() + 1 }} of {{ totalPages() }}</span>
             <button class="btn-page" [disabled]="currentPage() >= totalPages() - 1 || loading()" (click)="loadOrders(currentPage() + 1)">Next</button>
+          </div>
+        }
+        }
+      }
+
+      @if (activeTab() === 'payments') {
+        @if (paymentsLoading()) {
+          <div class="loading-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 1rem;">
+            <div class="loading-spinner"></div>
+            <p>Loading recent payments...</p>
+          </div>
+        } @else if (recentPayments().length === 0) {
+          <div style="text-align: center; padding: 4rem 1rem; color: var(--text-secondary);">
+            No recent payment transactions found.
+          </div>
+        } @else {
+          <div class="payments-grid" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            @for (payment of recentPayments(); track $index) {
+              <div class="payment-card-row" (click)="navigateToView(payment.orderGroupId!)" style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-card); border: 1.5px solid var(--surface-border); border-radius: 1rem; padding: 1rem; cursor: pointer; transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                  <div class="payment-icon-wrapper" style="width: 44px; height: 44px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 700;">
+                    ₹
+                  </div>
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                      <span style="font-weight: 700; color: var(--text-primary);">{{ payment.customerName }}</span>
+                      <span style="font-size: 0.75rem; background: var(--surface-ground); border: 1px solid var(--surface-border); padding: 0.15rem 0.45rem; border-radius: 0.5rem; color: var(--text-muted); font-weight: 600;">
+                        Order #{{ payment.orderGroupId }}
+                      </span>
+                    </div>
+                    @if (payment.notes) {
+                      <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.15rem;">{{ payment.notes }}</div>
+                    }
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                      {{ payment.createdAt | date:'mediumDate' }} at {{ payment.createdAt | date:'shortTime' }}
+                    </div>
+                  </div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-weight: 800; color: #10b981; font-size: 1.1rem;">
+                    +{{ payment.amount | currency:'INR':'₹':'1.0-0' }}
+                  </div>
+                  <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; margin-top: 0.15rem;">
+                    {{ payment.paymentMode }}
+                  </div>
+                </div>
+              </div>
+            }
           </div>
         }
       }
@@ -570,6 +629,38 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+    .tabs-container {
+      border-color: var(--surface-border);
+    }
+    
+    .tab-btn {
+      padding: 0.85rem 1.5rem;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .payment-card-row:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent-subtle) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    }
   `]
 })
 export class OrderListComponent implements OnInit, OnDestroy {
@@ -585,6 +676,11 @@ export class OrderListComponent implements OnInit, OnDestroy {
   salesPersons = signal<SalesPerson[]>([]);
   selectedSalesPersonIds = signal<number[]>([]);
   showFilterDropdown = signal(false);
+
+  // Tab State
+  activeTab = signal<'orders' | 'payments'>('orders');
+  recentPayments = signal<OrderPayment[]>([]);
+  paymentsLoading = signal(false);
 
   startDate = signal<string>('');
   endDate = signal<string>('');
@@ -799,5 +895,25 @@ export class OrderListComponent implements OnInit, OnDestroy {
 
   getTotalItemsQty(order: Order): number {
     return (order.items || []).reduce((sum, item) => sum + (item.quantity || 0), 0);
+  }
+
+  setTab(tab: 'orders' | 'payments') {
+    this.activeTab.set(tab);
+    if (tab === 'payments') {
+      this.loadRecentPayments();
+    }
+  }
+
+  loadRecentPayments() {
+    this.paymentsLoading.set(true);
+    this.orderService.getRecentPayments(0, 50).subscribe({
+      next: (res) => {
+        this.recentPayments.set(res.content || []);
+        this.paymentsLoading.set(false);
+      },
+      error: () => {
+        this.paymentsLoading.set(false);
+      }
+    });
   }
 }

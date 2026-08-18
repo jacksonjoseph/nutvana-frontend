@@ -93,4 +93,10 @@ export class OrderService {
   addPayment(orderId: number, payment: OrderPayment): Observable<Order> {
     return this.http.post<Order>(`${this.baseUrl}/${orderId}/payments`, payment);
   }
+
+  getRecentPayments(page: number = 0, size: number = 20): Observable<PageableResponse<OrderPayment>> {
+    return this.http.get<PageableResponse<OrderPayment>>(`${this.baseUrl}/payments`, {
+      params: { page, size }
+    });
+  }
 }
