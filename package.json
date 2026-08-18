@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build && echo '=== BUILD OUTPUT FILES ===' && find dist -maxdepth 3",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
