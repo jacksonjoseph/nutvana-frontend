@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: nutvana-orders-frontend
+    runtime: static
+    buildCommand: npm run build
+    publishDir: dist/nutvana-orders-frontend
+    routes:
+      - src: /*
+        dest: /index.html
