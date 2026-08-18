@@ -6,6 +6,8 @@ export interface OrderItem {
   unitPrice: number;
 }
 
+import { OrderPayment } from './order-payment.model';
+
 export interface Order {
   id?: number;
   customerId?: number;
@@ -19,6 +21,7 @@ export interface Order {
   items: OrderItem[];
   orderDate?: string;
   totalAmount?: number;
+  payments?: OrderPayment[];
 }
 
 export interface ParsedBillItem {

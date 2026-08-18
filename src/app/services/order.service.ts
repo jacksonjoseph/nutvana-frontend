@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Order, BillParseResult } from '../models/order.model';
+import { OrderPayment } from '../models/order-payment.model';
 import { PageableResponse } from '../models/pageable.model';
 import { environment } from '../../environments/environment';
 
@@ -87,5 +88,9 @@ export class OrderService {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<BillParseResult>(`${this.baseUrl}/parse-bill`, formData);
+  }
+
+  addPayment(orderId: number, payment: OrderPayment): Observable<Order> {
+    return this.http.post<Order>(`${this.baseUrl}/${orderId}/payments`, payment);
   }
 }

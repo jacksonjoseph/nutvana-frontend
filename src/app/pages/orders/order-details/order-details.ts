@@ -11,10 +11,12 @@ import { Product } from '../../../models/product.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/print-invoice.component';
 
+import { OrderPayment } from '../../../models/order-payment.model';
+
 @Component({
   selector: 'app-order-details',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, ConfirmDialogComponent, PrintInvoiceComponent],
+  imports: [CurrencyPipe, DatePipe, ConfirmDialogComponent, PrintInvoiceComponent, FormsModule],
   template: `
     <div class="form-page">
       <div class="form-header">
@@ -136,7 +138,7 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
             </div>
 
             <div class="view-section">
-              <h2 class="view-section-title">Payment</h2>
+              <h2 class="view-section-title">Payment Summary</h2>
               <div class="view-payment-card">
                 <div class="amount-col">
                   <span class="amount-lbl">TOTAL</span>
@@ -157,6 +159,84 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
                   </span>
                 </div>
               </div>
+            </div>
+
+            <div class="view-section">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <h2 class="view-section-title" style="margin-bottom: 0;">Payment History ({{ orderPayments().length }})</h2>
+                @if (amountBalance > 0) {
+                  <button class="add-payment-btn" (click)="togglePaymentForm()">
+                    {{ showPaymentForm() ? 'Cancel' : '+ Record Payment' }}
+                  </button>
+                }
+              </div>
+
+              @if (showPaymentForm()) {
+                <div class="payment-form-card">
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                    <div>
+                      <label class="form-label">Payment Amount (Max ₹{{ amountBalance }})</label>
+                      <input type="number" class="form-input" [(ngModel)]="paymentAmount" name="paymentAmount" min="1" [max]="amountBalance">
+                    </div>
+                    <div>
+                      <label class="form-label">Payment Mode</label>
+                      <select class="form-input" [(ngModel)]="paymentMode" name="paymentMode">
+                        <option value="CASH">Cash</option>
+                        <option value="UPI">UPI / Transfer</option>
+                        <option value="CARD">Card</option>
+                        <option value="BANK_TRANSFER">Bank Transfer</option>
+                        <option value="CHEQUE">Cheque</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                    <div>
+                      <label class="form-label">Reference Number (Optional)</label>
+                      <input type="text" class="form-input" placeholder="e.g. Transaction ID" [(ngModel)]="paymentReference" name="paymentReference">
+                    </div>
+                    <div>
+                      <label class="form-label">Notes (Optional)</label>
+                      <input type="text" class="form-input" placeholder="Payment details..." [(ngModel)]="paymentNotes" name="paymentNotes">
+                    </div>
+                  </div>
+                  <button class="submit-btn" [disabled]="submittingPayment() || paymentAmount <= 0 || paymentAmount > amountBalance" (click)="submitPayment()">
+                    @if (submittingPayment()) {
+                      <div class="btn-spinner"></div>
+                    } @else {
+                      Record Payment
+                    }
+                  </button>
+                </div>
+              }
+
+              @if (orderPayments().length === 0) {
+                <div style="text-align: center; padding: 2rem; color: var(--text-secondary); background: var(--surface-card); border-radius: 1rem; border: 1px solid var(--surface-border);">
+                  No payment transactions recorded yet.
+                </div>
+              } @else {
+                <div class="payment-history-list">
+                  @for (payment of orderPayments(); track $index) {
+                    <div class="payment-history-item">
+                      <div class="payment-item-dot" [class.initial]="payment.notes?.toLowerCase()?.includes('initial')"></div>
+                      <div class="payment-item-content">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                          <div>
+                            <span class="payment-item-mode">{{ payment.paymentMode }}</span>
+                            @if (payment.referenceNumber) {
+                              <span class="payment-item-ref"> (Ref: {{ payment.referenceNumber }})</span>
+                            }
+                          </div>
+                          <span class="payment-item-amount">{{ payment.amount | currency:'INR':'₹':'1.0-0' }}</span>
+                        </div>
+                        @if (payment.notes) {
+                          <div class="payment-item-notes">{{ payment.notes }}</div>
+                        }
+                        <div class="payment-item-date">{{ payment.createdAt | date:'mediumDate' }} at {{ payment.createdAt | date:'shortTime' }}</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
             </div>
           </div>
 
@@ -755,6 +835,110 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .add-payment-btn {
+      padding: 0.5rem 1rem;
+      background: var(--accent-subtle);
+      border: 1.5px solid var(--accent);
+      color: var(--accent);
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .add-payment-btn:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    .payment-form-card {
+      background: var(--surface-card);
+      border: 1.5px solid var(--accent-subtle);
+      border-radius: 1rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .payment-history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      position: relative;
+      padding-left: 1rem;
+    }
+
+    .payment-history-list::before {
+      content: '';
+      position: absolute;
+      left: 3.5px;
+      top: 10px;
+      bottom: 10px;
+      width: 2px;
+      background: var(--surface-border);
+    }
+
+    .payment-history-item {
+      display: flex;
+      gap: 1rem;
+      position: relative;
+    }
+
+    .payment-item-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--surface-ground);
+      position: absolute;
+      left: -17px;
+      top: 6px;
+      z-index: 1;
+    }
+
+    .payment-item-dot.initial {
+      background: #10b981;
+    }
+
+    .payment-item-content {
+      flex: 1;
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      border-radius: 0.75rem;
+      padding: 0.85rem;
+    }
+
+    .payment-item-mode {
+      font-weight: 700;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+
+    .payment-item-ref {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+
+    .payment-item-amount {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 0.95rem;
+    }
+
+    .payment-item-notes {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin-top: 0.25rem;
+    }
+
+    .payment-item-date {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.35rem;
+    }
   `]
 })
 export class OrderDetails implements OnInit {
@@ -781,8 +965,23 @@ export class OrderDetails implements OnInit {
   discount = 0;
   calculatedTotal = signal(0);
 
+  // Payments
+  orderPayments = signal<OrderPayment[]>([]);
+  showPaymentForm = signal(false);
+  submittingPayment = signal(false);
+  
+  // Payment Form Fields
+  paymentAmount = 0;
+  paymentMode: 'CASH' | 'UPI' | 'CARD' | 'BANK_TRANSFER' | 'CHEQUE' = 'CASH';
+  paymentReference = '';
+  paymentNotes = '';
+
   ngOnInit() {
     this.orderId = Number(this.route.snapshot.paramMap.get('id'));
+    this.loadOrderData();
+  }
+
+  loadOrderData() {
     this.orderService.getById(this.orderId).subscribe({
       next: (order) => {
         this.amountCollected = order.amountCollected;
@@ -795,6 +994,7 @@ export class OrderDetails implements OnInit {
         this.currentOrderDate = d;
 
         this.orderItems.set(order.items || []);
+        this.orderPayments.set(order.payments || []);
         this.calculateTotal();
 
         // Load customer info
@@ -869,6 +1069,45 @@ export class OrderDetails implements OnInit {
       },
       error: () => {
         this.showDeleteDialog.set(false);
+      }
+    });
+  }
+
+  togglePaymentForm() {
+    this.showPaymentForm.update(v => !v);
+    if (this.showPaymentForm()) {
+      this.paymentAmount = this.amountBalance;
+      this.paymentMode = 'CASH';
+      this.paymentReference = '';
+      this.paymentNotes = '';
+    }
+  }
+
+  submitPayment() {
+    if (this.paymentAmount <= 0 || this.paymentAmount > this.amountBalance) {
+      return;
+    }
+
+    this.submittingPayment.set(true);
+
+    const newPayment: OrderPayment = {
+      amount: this.paymentAmount,
+      paymentMode: this.paymentMode,
+      referenceNumber: this.paymentReference || undefined,
+      notes: this.paymentNotes || undefined
+    };
+
+    this.orderService.addPayment(this.orderId, newPayment).subscribe({
+      next: (updatedOrder) => {
+        this.submittingPayment.set(false);
+        this.showPaymentForm.set(false);
+        // Refresh details with the newly updated order from response
+        this.amountCollected = updatedOrder.amountCollected;
+        this.amountBalance = updatedOrder.amountBalance ?? 0;
+        this.orderPayments.set(updatedOrder.payments || []);
+      },
+      error: () => {
+        this.submittingPayment.set(false);
       }
     });
   }
