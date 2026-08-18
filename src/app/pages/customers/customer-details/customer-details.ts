@@ -4,15 +4,20 @@ import { FormsModule } from '@angular/forms';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { CustomerService } from '../../../services/customer.service';
 import { OrderService } from '../../../services/order.service';
+import { ProductService } from '../../../services/product.service';
+import { SalesPersonService } from '../../../services/sales-person.service';
 import { DashboardService, OrderSummary } from '../../../services/dashboard.service';
 import { Customer } from '../../../models/customer.model';
 import { Order } from '../../../models/order.model';
+import { Product } from '../../../models/product.model';
+import { SalesPerson } from '../../../models/sales-person.model';
+import { CustomerReturn } from '../../../models/customer-return.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-customer-details',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, ConfirmDialogComponent],
+  imports: [CurrencyPipe, DatePipe, FormsModule, ConfirmDialogComponent],
   template: `
     <div class="form-page">
       <div class="form-header">
@@ -127,8 +132,18 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
           </div>
         }
 
-        <!-- Orders section – only in view mode -->
-        <div class="orders-section">
+        <!-- Tabs switching -->
+        <div class="tabs-container" style="display: flex; border-bottom: 2px solid var(--surface-border); margin: 1.5rem 0;">
+          <button class="tab-btn" [class.active]="activeTab() === 'orders'" (click)="setTab('orders')">
+            Orders
+          </button>
+          <button class="tab-btn" [class.active]="activeTab() === 'returns'" (click)="setTab('returns')">
+            Returns Log
+          </button>
+        </div>
+
+        @if (activeTab() === 'orders') {
+          <div class="orders-section">
             <div class="orders-header">
               <div class="title-with-count">
                 <h2 class="orders-title">Orders</h2>
@@ -207,6 +222,132 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
               }
             }
           </div>
+        }
+
+        @if (activeTab() === 'returns') {
+          <div class="returns-section" style="padding-bottom: 2rem;">
+            <!-- Record Return Form Card -->
+            <div class="record-return-card" style="background: var(--surface-card); border: 1.5px solid var(--surface-border); border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+              <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <polyline points="1 20 1 14 7 14"/>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+                Record Product Return
+              </h3>
+              
+              <form (ngSubmit)="submitReturn()" #returnForm="ngForm" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                  <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Product</label>
+                    <select style="width: 100%; padding: 0.6rem 0.85rem; background: var(--surface-ground); border: 1.5px solid var(--surface-border); border-radius: 0.5rem; color: var(--text-primary); font-family: inherit; font-size: 0.85rem;"
+                            [(ngModel)]="newReturn().productId" name="productId" (change)="onProductChange()" required>
+                      <option [value]="null" disabled selected>Select Product</option>
+                      @for (p of products(); track p.id) {
+                        <option [value]="p.id">{{ p.name }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Agent / Sales Person (Who Collected)</label>
+                    <select style="width: 100%; padding: 0.6rem 0.85rem; background: var(--surface-ground); border: 1.5px solid var(--surface-border); border-radius: 0.5rem; color: var(--text-primary); font-family: inherit; font-size: 0.85rem;"
+                            [(ngModel)]="newReturn().salesPersonId" name="salesPersonId" required>
+                      <option [value]="null" disabled selected>Select Agent</option>
+                      @for (sp of salesPersons(); track sp.id) {
+                        <option [value]="sp.id">{{ sp.name }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                  <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Quantity</label>
+                    <input type="number" style="width: 100%; padding: 0.6rem 0.85rem; background: var(--surface-ground); border: 1.5px solid var(--surface-border); border-radius: 0.5rem; color: var(--text-primary); font-family: inherit; font-size: 0.85rem;"
+                           [(ngModel)]="newReturn().quantity" name="quantity" min="0.01" step="any" placeholder="0.0" required>
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Return Rate (Per Unit)</label>
+                    <input type="number" style="width: 100%; padding: 0.6rem 0.85rem; background: var(--surface-ground); border: 1.5px solid var(--surface-border); border-radius: 0.5rem; color: var(--text-primary); font-family: inherit; font-size: 0.85rem;"
+                           [(ngModel)]="newReturn().unitPrice" name="unitPrice" min="0" step="any" placeholder="₹0.0" required>
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Total Value (Auto-Calc)</label>
+                    <div style="padding: 0.6rem 0.85rem; background: rgba(16, 185, 129, 0.1); border: 1.5px solid #10b981; border-radius: 0.5rem; color: #10b981; font-weight: 800; font-size: 0.95rem; text-align: center;">
+                      {{ (newReturn().quantity ?? 0) * (newReturn().unitPrice ?? 0) | currency:'INR':'₹':'1.0-0' }}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Notes / Reason for Return</label>
+                  <input type="text" style="width: 100%; padding: 0.6rem 0.85rem; background: var(--surface-ground); border: 1.5px solid var(--surface-border); border-radius: 0.5rem; color: var(--text-primary); font-family: inherit; font-size: 0.85rem;"
+                         [(ngModel)]="newReturn().notes" name="notes" placeholder="e.g. Expired batch, packaging damage, etc.">
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+                  <button type="submit" [disabled]="!returnForm.form.valid || recordingReturn()" style="background: var(--accent-gradient); color: white; border: none; padding: 0.65rem 1.75rem; border-radius: 0.6rem; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem;">
+                    @if (recordingReturn()) {
+                      <div class="loading-spinner-sm" style="width: 14px; height: 14px; border-width: 2px; border-color: white; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div> Saving...
+                    } @else {
+                      Submit Return
+                    }
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Returns History Feed -->
+            <div class="returns-history" style="margin-top: 1.5rem;">
+              <h4 style="font-size: 1rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.75rem;">Returns History</h4>
+              
+              @if (returnsLoading()) {
+                <div style="display: flex; justify-content: center; padding: 2rem 0;">
+                  <div class="loading-spinner-sm" style="width: 30px; height: 30px; border: 2.5px solid var(--surface-border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                </div>
+              } @else if (returns().length === 0) {
+                <div style="text-align: center; padding: 3rem 1rem; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 1rem; color: var(--text-secondary);">
+                  No product returns recorded for this customer.
+                </div>
+              } @else {
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                  @for (item of returns(); track item.id) {
+                    <div class="return-log-card" style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-card); border: 1.5px solid var(--surface-border); border-radius: 1rem; padding: 1rem;">
+                      <div style="display: flex; align-items: center; gap: 0.85rem;">
+                        <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(239, 68, 68, 0.1); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                          🔄
+                        </div>
+                        <div>
+                          <div style="font-weight: 700; color: var(--text-primary);">
+                            {{ item.productName }}
+                          </div>
+                          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.1rem;">
+                            Returned <strong style="color: var(--text-primary);">{{ item.quantity }}</strong> units @ {{ item.unitPrice | currency:'INR':'₹':'1.0-0' }}/unit
+                          </div>
+                          @if (item.notes) {
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-style: italic; margin-top: 0.15rem;">"{{ item.notes }}"</div>
+                          }
+                          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.3rem;">
+                            Collected by {{ item.salesPersonName }} on {{ item.createdAt | date:'mediumDate' }} at {{ item.createdAt | date:'shortTime' }}
+                          </div>
+                        </div>
+                      </div>
+                      <div style="text-align: right;">
+                        <div style="font-weight: 800; color: #ef4444; font-size: 1rem;">
+                          -{{ item.returnAmount | currency:'INR':'₹':'1.0-0' }}
+                        </div>
+                        <div style="font-size: 0.65rem; background: var(--surface-ground); border: 1px solid var(--surface-border); padding: 0.15rem 0.4rem; border-radius: 0.4rem; color: var(--text-secondary); font-weight: 700; display: inline-block; margin-top: 0.25rem;">
+                          CREDITED
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
       }
 
       @if (showDeleteDialog()) {
@@ -754,16 +895,69 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .tabs-container {
+      border-color: var(--surface-border);
+    }
+    
+    .tab-btn {
+      padding: 0.75rem 1.25rem;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .return-log-card {
+      transition: all 0.2s ease;
+    }
+
+    .return-log-card:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent-subtle) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    }
   `]
 })
 export class CustomerDetails implements OnInit {
   private customerService = inject(CustomerService);
   private orderService = inject(OrderService);
+  private productService = inject(ProductService);
+  private salesPersonService = inject(SalesPersonService);
   private dashboardService = inject(DashboardService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
   customer: Customer = { name: '', location: '', contact: '', phone: '' };
+
+  // Tab & Returns State
+  activeTab = signal<'orders' | 'returns'>('orders');
+  returns = signal<CustomerReturn[]>([]);
+  returnsLoading = signal(false);
+  products = signal<Product[]>([]);
+  salesPersons = signal<SalesPerson[]>([]);
+  newReturn = signal<{ productId: number | null, salesPersonId: number | null, quantity: number | null, unitPrice: number | null, notes: string }>({
+    productId: null,
+    salesPersonId: null,
+    quantity: null,
+    unitPrice: null,
+    notes: ''
+  });
+  recordingReturn = signal(false);
 
   orders = signal<Order[]>([]);
   totalOrders = signal(0);
@@ -879,5 +1073,94 @@ export class CustomerDetails implements OnInit {
 
   goBack() {
     this.router.navigate(['/customers']);
+  }
+
+  setTab(tab: 'orders' | 'returns') {
+    this.activeTab.set(tab);
+    if (tab === 'returns') {
+      this.loadReturns();
+      this.loadProducts();
+      this.loadSalesPersons();
+    }
+  }
+
+  loadReturns() {
+    this.returnsLoading.set(true);
+    this.customerService.getCustomerReturns(this.customerId).subscribe({
+      next: (data) => {
+        this.returns.set(data || []);
+        this.returnsLoading.set(false);
+      },
+      error: () => {
+        this.returnsLoading.set(false);
+      }
+    });
+  }
+
+  loadProducts() {
+    this.productService.getAll(0, 100).subscribe({
+      next: (res) => {
+        this.products.set(res.content || []);
+      }
+    });
+  }
+
+  loadSalesPersons() {
+    this.salesPersonService.getAll(0, 100).subscribe({
+      next: (res) => {
+        this.salesPersons.set(res.content || []);
+      }
+    });
+  }
+
+  onProductChange() {
+    const selectedProdId = this.newReturn().productId;
+    if (selectedProdId) {
+      const prod = this.products().find(p => p.id === Number(selectedProdId));
+      if (prod) {
+        this.newReturn.update(current => ({
+          ...current,
+          unitPrice: prod.maxSalePrice || prod.maxRetailPrice || 0
+        }));
+      }
+    }
+  }
+
+  submitReturn() {
+    const form = this.newReturn();
+    if (!form.productId || !form.salesPersonId || !form.quantity || form.quantity <= 0) {
+      return;
+    }
+
+    this.recordingReturn.set(true);
+    const returnData: CustomerReturn = {
+      customerId: this.customerId,
+      salesPersonId: Number(form.salesPersonId),
+      productId: Number(form.productId),
+      quantity: Number(form.quantity),
+      unitPrice: Number(form.unitPrice ?? 0),
+      notes: form.notes
+    };
+
+    this.customerService.recordReturn(returnData).subscribe({
+      next: () => {
+        this.recordingReturn.set(false);
+        // Reset form
+        this.newReturn.set({
+          productId: null,
+          salesPersonId: null,
+          quantity: null,
+          unitPrice: null,
+          notes: ''
+        });
+        // Reload list and summary metrics
+        this.loadReturns();
+        this.loadOrderSummary();
+        this.loadOrders(0);
+      },
+      error: () => {
+        this.recordingReturn.set(false);
+      }
+    });
   }
 }

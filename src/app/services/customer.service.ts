@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Customer } from '../models/customer.model';
+import { CustomerReturn } from '../models/customer-return.model';
 import { PageableResponse } from '../models/pageable.model';
 import { environment } from '../../environments/environment';
 
@@ -42,5 +43,13 @@ export class CustomerService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  recordReturn(cr: CustomerReturn): Observable<CustomerReturn> {
+    return this.http.post<CustomerReturn>(`${this.baseUrl}/returns`, cr);
+  }
+
+  getCustomerReturns(customerId: number): Observable<CustomerReturn[]> {
+    return this.http.get<CustomerReturn[]>(`${this.baseUrl}/${customerId}/returns`);
   }
 }
