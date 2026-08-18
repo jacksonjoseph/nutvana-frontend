@@ -3,7 +3,7 @@ services:
     name: nutvana-orders-frontend
     runtime: static
     buildCommand: npm run build
-    staticPublishPath: dist/nutvana-orders-frontend
+    staticPublishPath: dist/nutvana-orders-frontend/browser
     routes:
       - type: rewrite
         source: /*
