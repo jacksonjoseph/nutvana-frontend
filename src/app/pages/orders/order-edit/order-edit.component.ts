@@ -250,6 +250,7 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
                       [(ngModel)]="item.quantity"
                       [name]="'qty_' + i"
                       (ngModelChange)="calculateTotal()"
+                      (wheel)="preventScroll($event)"
                     />
                   </div>
                   <div class="form-group">
@@ -261,6 +262,7 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
                       [(ngModel)]="item.unitPrice"
                       [name]="'price_' + i"
                       (ngModelChange)="calculateTotal()"
+                      (wheel)="preventScroll($event)"
                     />
                   </div>
                 </div>
@@ -308,6 +310,7 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
                   min="0"
                   [(ngModel)]="discount"
                   name="discount"
+                  (wheel)="preventScroll($event)"
                 />
               </div>
               <div class="summary-row highlight">
@@ -320,6 +323,7 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
                   [(ngModel)]="amountCollected"
                   name="amountCollected"
                   required
+                  (wheel)="preventScroll($event)"
                 />
               </div>
             </div>
@@ -1154,5 +1158,11 @@ export class OrderEditComponent implements OnInit {
 
   cancelEdit() {
     this.router.navigate(['/orders/details', this.orderId]);
+  }
+
+  preventScroll(event: Event) {
+    if (event.target instanceof HTMLInputElement) {
+      event.target.blur();
+    }
   }
 }

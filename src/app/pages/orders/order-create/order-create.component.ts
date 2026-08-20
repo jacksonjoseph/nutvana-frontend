@@ -295,6 +295,7 @@ import { SalesPerson, SalesPersonInventory } from '../../../models/sales-person.
                     [(ngModel)]="item.quantity"
                     [name]="'qty_' + i"
                     (ngModelChange)="calculateTotal()"
+                    (wheel)="preventScroll($event)"
                   />
                   @if (isSalesPersonLinked() && item.productId) {
                     <span class="stock-info" [class.insufficient]="item.quantity > getSalesPersonStock(item.productId)" style="font-size: 0.75rem; margin-top: 0.25rem; display: block;">
@@ -315,6 +316,7 @@ import { SalesPerson, SalesPersonInventory } from '../../../models/sales-person.
                     [(ngModel)]="item.unitPrice"
                     [name]="'price_' + i"
                     (ngModelChange)="calculateTotal()"
+                    (wheel)="preventScroll($event)"
                   />
                 </div>
               </div>
@@ -362,6 +364,7 @@ import { SalesPerson, SalesPersonInventory } from '../../../models/sales-person.
                 min="0"
                 [(ngModel)]="discount"
                 name="discount"
+                (wheel)="preventScroll($event)"
               />
             </div>
             <div class="summary-row highlight">
@@ -374,6 +377,7 @@ import { SalesPerson, SalesPersonInventory } from '../../../models/sales-person.
                 [(ngModel)]="amountCollected"
                 name="amountCollected"
                 required
+                (wheel)="preventScroll($event)"
               />
             </div>
           </div>
@@ -1269,5 +1273,11 @@ export class OrderCreateComponent implements OnInit {
         this.saving.set(false);
       }
     });
+  }
+
+  preventScroll(event: Event) {
+    if (event.target instanceof HTMLInputElement) {
+      event.target.blur();
+    }
   }
 }
