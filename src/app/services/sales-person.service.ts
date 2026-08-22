@@ -64,6 +64,15 @@ export class SalesPersonService {
     });
   }
 
+  recordWastage(salesPersonId: number, productId: number, quantity: number, notes: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/record-wastage`, {
+      salesPersonId,
+      productId,
+      quantity,
+      notes
+    });
+  }
+
   getTransactions(salesPersonId: number, page: number = 0, size: number = 10): Observable<PageableResponse<SalesPersonInventoryTransaction>> {
     return this.http.get<PageableResponse<SalesPersonInventoryTransaction>>(`${this.baseUrl}/${salesPersonId}/transactions`, {
       params: { page, size }

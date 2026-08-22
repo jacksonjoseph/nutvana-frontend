@@ -96,7 +96,16 @@ import { Product } from '../../../models/product.model';
           <div class="tab-content">
             <div class="action-row">
               <h3 class="section-heading">Current Stock</h3>
-              <div class="button-group">
+              <div class="button-group" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <button class="btn-danger-sm" (click)="openWastageModal()" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.85rem; border-radius: 0.5rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1.5px solid rgba(239, 68, 68, 0.2); font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    <line x1="10" y1="11" x2="10" y2="17"/>
+                    <line x1="14" y1="11" x2="14" y2="17"/>
+                  </svg>
+                  Record Damage
+                </button>
                 <button class="btn-secondary" (click)="openReturnModal()">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <polyline points="15 14 20 9 15 4"/>
@@ -449,6 +458,76 @@ import { Product } from '../../../models/product.model';
               <button type="button" class="btn-cancel" (click)="showReturnModal.set(false)" [disabled]="submittingReturn()">Cancel</button>
               <button type="submit" class="btn-primary-sm" [disabled]="submittingReturn() || selectedReturnProductId === 0 || returnQty <= 0 || returnQty > maxReturnQty">
                 @if (submittingReturn()) { <span class="btn-spinner"></span> Returning... } @else { Return Stock }
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
+
+    @if (showWastageModal()) {
+      <div class="modal-overlay" (click)="showWastageModal.set(false)">
+        <div class="modal-container" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3 class="modal-title" style="color: #ef4444;">Record Damaged Stock</h3>
+            <button class="modal-close" (click)="showWastageModal.set(false)">&times;</button>
+          </div>
+          <form (ngSubmit)="submitWastage()" #wastageForm="ngForm" class="modal-form">
+            <!-- Product Select -->
+            <div class="form-group">
+              <label class="form-label" for="wasProduct">Select Product</label>
+              <select
+                id="wasProduct"
+                [(ngModel)]="selectedWastageProductId"
+                name="wasProduct"
+                class="modal-input"
+                (change)="onWastageProductChange()"
+                required
+              >
+                <option [value]="0">-- Select Product --</option>
+                @for (item of inventory(); track item.productId) {
+                  <option [value]="item.productId">{{ item.productName }} (Qty: {{ item.quantity }})</option>
+                }
+              </select>
+            </div>
+
+            <!-- Quantity -->
+            <div class="form-group">
+              <label class="form-label" for="wasQty">Quantity Wasted / Damaged</label>
+              <input
+                id="wasQty"
+                type="number"
+                min="0.0001"
+                step="any"
+                [max]="maxWastageQty"
+                [(ngModel)]="wastageQty"
+                name="wasQty"
+                class="modal-input"
+                required
+              />
+              @if (wastageQty > maxWastageQty) {
+                <span class="error-msg">Cannot write off more than available quantity (Max: {{ maxWastageQty }})</span>
+              }
+            </div>
+
+            <!-- Notes -->
+            <div class="form-group">
+              <label class="form-label" for="wasNotes">Damage Reason / Notes</label>
+              <input
+                id="wasNotes"
+                type="text"
+                [(ngModel)]="wastageNotes"
+                name="wasNotes"
+                class="modal-input"
+                placeholder="e.g. Expired batch, broken packaging, rodent damage"
+                required
+              />
+            </div>
+
+            <div class="modal-footer" style="padding: 1rem 0 0; margin-top: 1rem; border-top: 1.5px solid var(--surface-border);">
+              <button type="button" class="btn-cancel" (click)="showWastageModal.set(false)" [disabled]="submittingWastage()">Cancel</button>
+              <button type="submit" class="btn-primary-sm" style="background: #ef4444 !important; color: white;" [disabled]="submittingWastage() || selectedWastageProductId === 0 || wastageQty <= 0 || wastageQty > maxWastageQty || !wastageNotes">
+                @if (submittingWastage()) { <span class="btn-spinner"></span> Saving... } @else { Record Damage }
               </button>
             </div>
           </form>
@@ -1221,6 +1300,14 @@ export class SalesPersonDetailsComponent implements OnInit {
   maxReturnQty = 0;
   submittingReturn = signal(false);
 
+  // Wastage Stock modal state
+  showWastageModal = signal(false);
+  selectedWastageProductId = 0;
+  wastageQty = 1;
+  maxWastageQty = 0;
+  wastageNotes = '';
+  submittingWastage = signal(false);
+
   private salesPersonId!: number;
 
   ngOnInit() {
@@ -1437,6 +1524,44 @@ export class SalesPersonDetailsComponent implements OnInit {
       },
       error: () => {
         this.submittingReturn.set(false);
+      }
+    });
+  }
+
+  // --- MODAL 4: RECORD DAMAGE / WASTAGE ---
+  openWastageModal() {
+    this.selectedWastageProductId = 0;
+    this.wastageQty = 1;
+    this.maxWastageQty = 0;
+    this.wastageNotes = '';
+    this.showWastageModal.set(true);
+  }
+
+  onWastageProductChange() {
+    const pId = Number(this.selectedWastageProductId);
+    const item = this.inventory().find(i => i.productId === pId);
+    if (item) {
+      this.maxWastageQty = item.quantity;
+      this.wastageQty = Math.min(1, item.quantity);
+    } else {
+      this.maxWastageQty = 0;
+      this.wastageQty = 0;
+    }
+  }
+
+  submitWastage() {
+    if (this.selectedWastageProductId === 0 || this.wastageQty <= 0 || this.wastageQty > this.maxWastageQty || !this.wastageNotes) return;
+
+    this.submittingWastage.set(true);
+    this.salesPersonService.recordWastage(this.salesPersonId, this.selectedWastageProductId, this.wastageQty, this.wastageNotes).subscribe({
+      next: () => {
+        this.submittingWastage.set(false);
+        this.showWastageModal.set(false);
+        this.loadInventory(); // Reload
+        this.loadTransactions(); // Reload transactions
+      },
+      error: () => {
+        this.submittingWastage.set(false);
       }
     });
   }
