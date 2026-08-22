@@ -215,24 +215,76 @@ import { OrderPayment } from '../../../models/order-payment.model';
                 </div>
               } @else {
                 <div class="payment-history-list">
-                  @for (payment of orderPayments(); track $index) {
+                  @for (payment of orderPayments(); track payment.id) {
                     <div class="payment-history-item">
                       <div class="payment-item-dot" [class.initial]="payment.notes?.toLowerCase()?.includes('initial')"></div>
-                      <div class="payment-item-content">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                          <div>
-                            <span class="payment-item-mode">{{ payment.paymentMode }}</span>
-                            @if (payment.referenceNumber) {
-                              <span class="payment-item-ref"> (Ref: {{ payment.referenceNumber }})</span>
-                            }
+                      
+                      @if (editingPaymentId() === payment.id) {
+                        <!-- Inline Edit Form -->
+                        <div class="payment-item-content" style="border: 1.5px solid var(--accent); border-radius: 0.8rem; padding: 0.85rem; background: var(--surface-ground); margin-bottom: 0.5rem; width: 100%;">
+                          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div>
+                              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Amount (Max ₹{{ getMaxAllowedForPayment(payment.id!) }})</label>
+                              <input type="number" class="form-input" [(ngModel)]="editPaymentAmount" name="editPaymentAmount" style="padding: 0.45rem 0.65rem; font-size: 0.8rem;">
+                            </div>
+                            <div>
+                              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Mode</label>
+                              <select class="form-input" [(ngModel)]="editPaymentMode" name="editPaymentMode" style="padding: 0.45rem 0.65rem; font-size: 0.8rem; height: auto;">
+                                <option value="CASH">Cash</option>
+                                <option value="UPI">UPI / Transfer</option>
+                                <option value="CARD">Card</option>
+                                <option value="BANK_TRANSFER">Bank Transfer</option>
+                                <option value="CHEQUE">Cheque</option>
+                              </select>
+                            </div>
                           </div>
-                          <span class="payment-item-amount">{{ payment.amount | currency:'INR':'₹':'1.0-0' }}</span>
+                          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div>
+                              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Reference</label>
+                              <input type="text" class="form-input" [(ngModel)]="editPaymentReference" name="editPaymentReference" style="padding: 0.45rem 0.65rem; font-size: 0.8rem;">
+                            </div>
+                            <div>
+                              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Notes</label>
+                              <input type="text" class="form-input" [(ngModel)]="editPaymentNotes" name="editPaymentNotes" style="padding: 0.45rem 0.65rem; font-size: 0.8rem;">
+                            </div>
+                          </div>
+                          <div style="display: flex; justify-content: flex-end; gap: 0.5rem; align-items: center; margin-top: 0.5rem;">
+                            <button class="btn-cancel" (click)="cancelEditPayment()" style="padding: 0.35rem 0.85rem; font-size: 0.75rem; border-radius: 0.4rem; cursor: pointer;">Cancel</button>
+                            <button class="btn-primary-sm" (click)="saveEditPayment(payment.id!)" [disabled]="submittingPayment() || editPaymentAmount <= 0 || editPaymentAmount > getMaxAllowedForPayment(payment.id!)" style="padding: 0.35rem 0.85rem; font-size: 0.75rem; border-radius: 0.4rem; cursor: pointer;">
+                              Save
+                            </button>
+                          </div>
                         </div>
-                        @if (payment.notes) {
-                          <div class="payment-item-notes">{{ payment.notes }}</div>
-                        }
-                        <div class="payment-item-date">{{ payment.createdAt | date:'mediumDate' }} at {{ payment.createdAt | date:'shortTime' }}</div>
-                      </div>
+                      } @else {
+                        <!-- Regular View -->
+                        <div class="payment-item-content">
+                          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                              <span class="payment-item-mode">{{ payment.paymentMode }}</span>
+                              @if (payment.referenceNumber) {
+                                <span class="payment-item-ref"> (Ref: {{ payment.referenceNumber }})</span>
+                              }
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                              <span class="payment-item-amount">{{ payment.amount | currency:'INR':'₹':'1.0-0' }}</span>
+                              @if (payment.paymentMode !== 'RETURN_CREDIT') {
+                                <div class="payment-actions" style="display: flex; gap: 0.45rem; align-items: center;">
+                                  <button (click)="startEditPayment(payment)" title="Edit Payment" style="background: none; border: none; padding: 0.2rem; cursor: pointer; font-size: 0.9rem; filter: grayscale(1); transition: all 0.2s;">
+                                    ✏️
+                                  </button>
+                                  <button (click)="confirmDeletePayment(payment.id!)" title="Delete Payment" style="background: none; border: none; padding: 0.2rem; cursor: pointer; font-size: 0.9rem; filter: grayscale(1); transition: all 0.2s;">
+                                    🗑️
+                                  </button>
+                                </div>
+                              }
+                            </div>
+                          </div>
+                          @if (payment.notes) {
+                            <div class="payment-item-notes">{{ payment.notes }}</div>
+                          }
+                          <div class="payment-item-date">{{ payment.createdAt | date:'mediumDate' }} at {{ payment.createdAt | date:'shortTime' }}</div>
+                        </div>
+                      }
                     </div>
                   }
                 </div>
@@ -976,6 +1028,13 @@ export class OrderDetails implements OnInit {
   paymentReference = '';
   paymentNotes = '';
 
+  // Edit Payment State
+  editingPaymentId = signal<number | null>(null);
+  editPaymentAmount = 0;
+  editPaymentMode: OrderPayment['paymentMode'] = 'CASH';
+  editPaymentReference = '';
+  editPaymentNotes = '';
+
   ngOnInit() {
     this.orderId = Number(this.route.snapshot.paramMap.get('id'));
     this.loadOrderData();
@@ -1108,6 +1167,70 @@ export class OrderDetails implements OnInit {
       },
       error: () => {
         this.submittingPayment.set(false);
+      }
+    });
+  }
+
+  getMaxAllowedForPayment(paymentId: number): number {
+    const totalOrderAmount = this.calculatedTotal() - this.discount;
+    const otherPaymentsSum = this.orderPayments()
+      .filter(p => p.id !== paymentId)
+      .reduce((sum, p) => sum + p.amount, 0);
+    return Math.max(0, totalOrderAmount - otherPaymentsSum);
+  }
+
+  startEditPayment(payment: OrderPayment) {
+    if (payment.id) {
+      this.editingPaymentId.set(payment.id);
+      this.editPaymentAmount = payment.amount;
+      this.editPaymentMode = payment.paymentMode;
+      this.editPaymentReference = payment.referenceNumber || '';
+      this.editPaymentNotes = payment.notes || '';
+    }
+  }
+
+  cancelEditPayment() {
+    this.editingPaymentId.set(null);
+  }
+
+  saveEditPayment(paymentId: number) {
+    const maxAllowed = this.getMaxAllowedForPayment(paymentId);
+    if (this.editPaymentAmount <= 0 || this.editPaymentAmount > maxAllowed) {
+      return;
+    }
+
+    this.submittingPayment.set(true);
+    const updatedPayment: OrderPayment = {
+      id: paymentId,
+      amount: this.editPaymentAmount,
+      paymentMode: this.editPaymentMode,
+      referenceNumber: this.editPaymentReference || undefined,
+      notes: this.editPaymentNotes || undefined
+    };
+
+    this.orderService.updatePayment(paymentId, updatedPayment).subscribe({
+      next: (updatedOrder) => {
+        this.submittingPayment.set(false);
+        this.editingPaymentId.set(null);
+        this.amountCollected = updatedOrder.amountCollected;
+        this.amountBalance = updatedOrder.amountBalance ?? 0;
+        this.orderPayments.set(updatedOrder.payments || []);
+      },
+      error: () => {
+        this.submittingPayment.set(false);
+      }
+    });
+  }
+
+  confirmDeletePayment(paymentId: number) {
+    const ok = window.confirm("Are you sure you want to delete this payment record? This will adjust the order balance.");
+    if (!ok) return;
+
+    this.orderService.deletePayment(paymentId).subscribe({
+      next: (updatedOrder) => {
+        this.amountCollected = updatedOrder.amountCollected;
+        this.amountBalance = updatedOrder.amountBalance ?? 0;
+        this.orderPayments.set(updatedOrder.payments || []);
       }
     });
   }

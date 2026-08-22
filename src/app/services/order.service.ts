@@ -99,4 +99,12 @@ export class OrderService {
       params: { page, size }
     });
   }
+
+  updatePayment(paymentId: number, payment: OrderPayment): Observable<Order> {
+    return this.http.put<Order>(`${this.baseUrl}/payments/${paymentId}`, payment);
+  }
+
+  deletePayment(paymentId: number): Observable<Order> {
+    return this.http.delete<Order>(`${this.baseUrl}/payments/${paymentId}`);
+  }
 }
