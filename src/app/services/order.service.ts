@@ -108,6 +108,20 @@ export class OrderService {
     return this.http.get<PageableResponse<OrderPayment>>(`${this.baseUrl}/payments`, { params });
   }
 
+  getRecentPaymentsSummary(salesPersonIds?: number[], startDate?: string, endDate?: string): Observable<{ totalCollected: number }> {
+    const params: any = {};
+    if (salesPersonIds && salesPersonIds.length > 0) {
+      params.salesPersonIds = salesPersonIds.join(',');
+    }
+    if (startDate) {
+      params.startDate = startDate;
+    }
+    if (endDate) {
+      params.endDate = endDate;
+    }
+    return this.http.get<{ totalCollected: number }>(`${this.baseUrl}/payments/summary`, { params });
+  }
+
   updatePayment(paymentId: number, payment: OrderPayment): Observable<Order> {
     return this.http.put<Order>(`${this.baseUrl}/payments/${paymentId}`, payment);
   }

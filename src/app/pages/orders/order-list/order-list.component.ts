@@ -283,6 +283,25 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
       }
 
       @if (activeTab() === 'payments') {
+        <!-- KPI Stats Summary Row for Payments -->
+        <div class="kpi-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <!-- Total Amount Collected Card -->
+          <div class="kpi-card" style="background: var(--surface-card); border: 1.5px solid var(--surface-border); border-radius: 0.85rem; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s; cursor: default;">
+            <div>
+              <div class="kpi-label" style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Total Collected</div>
+              <div class="kpi-value" style="font-size: 1.5rem; font-weight: 800; color: var(--success); margin-top: 0.25rem;">
+                {{ paymentsSummaryData().totalCollected | currency:'INR':'₹':'1.0-0' }}
+              </div>
+            </div>
+            <div class="kpi-icon-wrapper" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(34, 197, 94, 0.1); color: #22c55e; display: flex; align-items: center; justify-content: center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
         @if (paymentsLoading()) {
           <div class="loading-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 1rem;">
             <div class="loading-spinner"></div>
@@ -690,6 +709,7 @@ export class OrderListComponent implements OnInit, OnDestroy {
   paymentDueFilter = signal(false);
   directSaleFilter = signal(false);
   summaryData = signal<{ totalCountSold: number, totalCollected: number, totalBalance: number }>({ totalCountSold: 0, totalCollected: 0, totalBalance: 0 });
+  paymentsSummaryData = signal<{ totalCollected: number }>({ totalCollected: 0 });
 
   currentPage = signal(0);
   totalPages = signal(0);
@@ -922,8 +942,36 @@ export class OrderListComponent implements OnInit, OnDestroy {
     }
   }
 
+  loadPaymentsSummary() {
+    let startIso: string | undefined = undefined;
+    if (this.startDate()) {
+      startIso = `${this.startDate()}T00:00:00`;
+    }
+
+    let endIso: string | undefined = undefined;
+    if (this.endDate()) {
+      endIso = `${this.endDate()}T23:59:59`;
+    }
+
+    this.orderService.getRecentPaymentsSummary(
+      this.selectedSalesPersonIds(),
+      startIso,
+      endIso
+    ).subscribe({
+      next: (data) => {
+        this.paymentsSummaryData.set({
+          totalCollected: data.totalCollected || 0
+        });
+      },
+      error: () => {
+        this.paymentsSummaryData.set({ totalCollected: 0 });
+      }
+    });
+  }
+
   loadRecentPayments(page: number = 0) {
     this.paymentsLoading.set(true);
+    this.loadPaymentsSummary();
     let startIso: string | undefined = undefined;
     if (this.startDate()) {
       startIso = `${this.startDate()}T00:00:00`;
