@@ -62,6 +62,30 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
             </button>
           }
 
+          @if (activeTab() === 'payments') {
+            <button class="filter-chip" [class.active]="paymentTypeFilter() === 'INITIAL'" (click)="setPaymentTypeFilter('INITIAL')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              Initial Payments
+              @if (paymentTypeFilter() === 'INITIAL') {
+                <span class="clear-filter" (click)="$event.stopPropagation(); setPaymentTypeFilter('INITIAL')">&times;</span>
+              }
+            </button>
+
+            <button class="filter-chip" [class.active]="paymentTypeFilter() === 'DUE_COVERED'" (click)="setPaymentTypeFilter('DUE_COVERED')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              Due Covered
+              @if (paymentTypeFilter() === 'DUE_COVERED') {
+                <span class="clear-filter" (click)="$event.stopPropagation(); setPaymentTypeFilter('DUE_COVERED')">&times;</span>
+              }
+            </button>
+          }
+
           <!-- Sales Person Multi-select Filter Dropdown -->
           <div class="filter-dropdown-container" style="position: relative; display: inline-block;">
             <button type="button" class="btn-filter" (click)="toggleFilterDropdown()" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.85rem; background: var(--surface-card); border: 1.5px solid var(--surface-border); border-radius: 2rem; color: var(--text-primary); font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
@@ -128,7 +152,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
             />
           </div>
           
-          @if (startDate() || endDate() || selectedSalesPersonIds().length > 0 || (activeTab() === 'orders' && (paymentDueFilter() || directSaleFilter()))) {
+          @if (startDate() || endDate() || selectedSalesPersonIds().length > 0 || (activeTab() === 'orders' && (paymentDueFilter() || directSaleFilter())) || (activeTab() === 'payments' && paymentTypeFilter() !== '')) {
             <button type="button" (click)="resetAllFilters()" style="background: none; border: none; color: var(--accent); font-weight: 700; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; margin-left: 0.25rem;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M2.5 2v6h6M21.5 22v-6h-6M22 11.5A10 10 0 003.2 7.2L2.5 8M2 12.5a10 10 0 0018.8 4.3l.7-.8"/>
@@ -710,6 +734,7 @@ export class OrderListComponent implements OnInit, OnDestroy {
   directSaleFilter = signal(false);
   summaryData = signal<{ totalCountSold: number, totalCollected: number, totalBalance: number }>({ totalCountSold: 0, totalCollected: 0, totalBalance: 0 });
   paymentsSummaryData = signal<{ totalCollected: number }>({ totalCollected: 0 });
+  paymentTypeFilter = signal<string>('');
 
   currentPage = signal(0);
   totalPages = signal(0);
@@ -893,9 +918,19 @@ export class OrderListComponent implements OnInit, OnDestroy {
     this.endDate.set('');
     this.paymentDueFilter.set(false);
     this.directSaleFilter.set(false);
+    this.paymentTypeFilter.set('');
     this.currentPage.set(0);
     this.paymentsCurrentPage.set(0);
     this.orderService.filterState = undefined;
+    this.loadActiveData(0);
+  }
+
+  setPaymentTypeFilter(type: string) {
+    if (this.paymentTypeFilter() === type) {
+      this.paymentTypeFilter.set('');
+    } else {
+      this.paymentTypeFilter.set(type);
+    }
     this.loadActiveData(0);
   }
 
@@ -956,7 +991,8 @@ export class OrderListComponent implements OnInit, OnDestroy {
     this.orderService.getRecentPaymentsSummary(
       this.selectedSalesPersonIds(),
       startIso,
-      endIso
+      endIso,
+      this.paymentTypeFilter()
     ).subscribe({
       next: (data) => {
         this.paymentsSummaryData.set({
@@ -987,7 +1023,8 @@ export class OrderListComponent implements OnInit, OnDestroy {
       this.paymentsPageSize(),
       this.selectedSalesPersonIds(),
       startIso,
-      endIso
+      endIso,
+      this.paymentTypeFilter()
     ).subscribe({
       next: (res) => {
         this.recentPayments.set(res.content || []);

@@ -94,7 +94,7 @@ export class OrderService {
     return this.http.post<Order>(`${this.baseUrl}/${orderId}/payments`, payment);
   }
 
-  getRecentPayments(page: number = 0, size: number = 20, salesPersonIds?: number[], startDate?: string, endDate?: string): Observable<PageableResponse<OrderPayment>> {
+  getRecentPayments(page: number = 0, size: number = 20, salesPersonIds?: number[], startDate?: string, endDate?: string, paymentType?: string): Observable<PageableResponse<OrderPayment>> {
     const params: any = { page, size };
     if (salesPersonIds && salesPersonIds.length > 0) {
       params.salesPersonIds = salesPersonIds.join(',');
@@ -105,10 +105,13 @@ export class OrderService {
     if (endDate) {
       params.endDate = endDate;
     }
+    if (paymentType) {
+      params.paymentType = paymentType;
+    }
     return this.http.get<PageableResponse<OrderPayment>>(`${this.baseUrl}/payments`, { params });
   }
 
-  getRecentPaymentsSummary(salesPersonIds?: number[], startDate?: string, endDate?: string): Observable<{ totalCollected: number }> {
+  getRecentPaymentsSummary(salesPersonIds?: number[], startDate?: string, endDate?: string, paymentType?: string): Observable<{ totalCollected: number }> {
     const params: any = {};
     if (salesPersonIds && salesPersonIds.length > 0) {
       params.salesPersonIds = salesPersonIds.join(',');
@@ -118,6 +121,9 @@ export class OrderService {
     }
     if (endDate) {
       params.endDate = endDate;
+    }
+    if (paymentType) {
+      params.paymentType = paymentType;
     }
     return this.http.get<{ totalCollected: number }>(`${this.baseUrl}/payments/summary`, { params });
   }
