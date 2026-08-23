@@ -188,6 +188,10 @@ import { OrderPayment } from '../../../models/order-payment.model';
                         <option value="CHEQUE">Cheque</option>
                       </select>
                     </div>
+                    <div>
+                      <label class="form-label">Payment Date</label>
+                      <input type="date" class="form-input" [(ngModel)]="paymentDate" name="paymentDate">
+                    </div>
                   </div>
                   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
                     <div>
@@ -236,6 +240,10 @@ import { OrderPayment } from '../../../models/order-payment.model';
                                 <option value="BANK_TRANSFER">Bank Transfer</option>
                                 <option value="CHEQUE">Cheque</option>
                               </select>
+                            </div>
+                            <div>
+                              <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Date</label>
+                              <input type="date" class="form-input" [(ngModel)]="editPaymentDate" name="editPaymentDate" style="padding: 0.45rem 0.65rem; font-size: 0.8rem; height: auto;">
                             </div>
                           </div>
                           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-bottom: 0.75rem;">
@@ -1027,6 +1035,7 @@ export class OrderDetails implements OnInit {
   paymentMode: 'CASH' | 'UPI' | 'CARD' | 'BANK_TRANSFER' | 'CHEQUE' = 'CASH';
   paymentReference = '';
   paymentNotes = '';
+  paymentDate = '';
 
   // Edit Payment State
   editingPaymentId = signal<number | null>(null);
@@ -1034,6 +1043,7 @@ export class OrderDetails implements OnInit {
   editPaymentMode: OrderPayment['paymentMode'] = 'CASH';
   editPaymentReference = '';
   editPaymentNotes = '';
+  editPaymentDate = '';
 
   ngOnInit() {
     this.orderId = Number(this.route.snapshot.paramMap.get('id'));
@@ -1139,6 +1149,8 @@ export class OrderDetails implements OnInit {
       this.paymentMode = 'CASH';
       this.paymentReference = '';
       this.paymentNotes = '';
+      const d = new Date();
+      this.paymentDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
   }
 
@@ -1149,11 +1161,14 @@ export class OrderDetails implements OnInit {
 
     this.submittingPayment.set(true);
 
+    const now = new Date();
+    const timeStr = now.toTimeString().split(' ')[0];
     const newPayment: OrderPayment = {
       amount: this.paymentAmount,
       paymentMode: this.paymentMode,
       referenceNumber: this.paymentReference || undefined,
-      notes: this.paymentNotes || undefined
+      notes: this.paymentNotes || undefined,
+      createdAt: this.paymentDate ? `${this.paymentDate}T${timeStr}` : undefined
     };
 
     this.orderService.addPayment(this.orderId, newPayment).subscribe({
@@ -1186,6 +1201,12 @@ export class OrderDetails implements OnInit {
       this.editPaymentMode = payment.paymentMode;
       this.editPaymentReference = payment.referenceNumber || '';
       this.editPaymentNotes = payment.notes || '';
+      if (payment.createdAt && payment.createdAt.length >= 10) {
+        this.editPaymentDate = payment.createdAt.substring(0, 10);
+      } else {
+        const d = new Date();
+        this.editPaymentDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
     }
   }
 
@@ -1200,12 +1221,22 @@ export class OrderDetails implements OnInit {
     }
 
     this.submittingPayment.set(true);
+    
+    const originalPayment = this.orderPayments().find(p => p.id === paymentId);
+    let timeStr = '12:00:00';
+    if (originalPayment && originalPayment.createdAt && originalPayment.createdAt.includes('T')) {
+      timeStr = originalPayment.createdAt.split('T')[1];
+    } else {
+      timeStr = new Date().toTimeString().split(' ')[0];
+    }
+
     const updatedPayment: OrderPayment = {
       id: paymentId,
       amount: this.editPaymentAmount,
       paymentMode: this.editPaymentMode,
       referenceNumber: this.editPaymentReference || undefined,
-      notes: this.editPaymentNotes || undefined
+      notes: this.editPaymentNotes || undefined,
+      createdAt: this.editPaymentDate ? `${this.editPaymentDate}T${timeStr}` : undefined
     };
 
     this.orderService.updatePayment(paymentId, updatedPayment).subscribe({
