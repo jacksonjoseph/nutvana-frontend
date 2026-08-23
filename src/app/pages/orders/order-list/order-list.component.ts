@@ -37,29 +37,30 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
         </button>
       </div>
 
-      @if (activeTab() === 'orders') {
-        <div class="filter-bar" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; align-items: center; justify-content: space-between;">
-          <div style="display: flex; gap: 0.5rem; align-items: center; position: relative;">
-          <button class="filter-chip" [class.active]="paymentDueFilter()" (click)="togglePaymentDueFilter()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23"/>
-              <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-            </svg>
-            Payment Due
-            @if (paymentDueFilter()) {
-              <span class="clear-filter" (click)="clearPaymentDueFilter($event)">&times;</span>
-            }
-          </button>
+      <div class="filter-bar" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; align-items: center; justify-content: space-between;">
+        <div style="display: flex; gap: 0.5rem; align-items: center; position: relative; flex-wrap: wrap;">
+          @if (activeTab() === 'orders') {
+            <button class="filter-chip" [class.active]="paymentDueFilter()" (click)="togglePaymentDueFilter()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+              </svg>
+              Payment Due
+              @if (paymentDueFilter()) {
+                <span class="clear-filter" (click)="clearPaymentDueFilter($event)">&times;</span>
+              }
+            </button>
 
-          <button class="filter-chip" [class.active]="directSaleFilter()" (click)="toggleDirectSaleFilter()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-            </svg>
-            Direct Sales
-            @if (directSaleFilter()) {
-              <span class="clear-filter" (click)="clearDirectSaleFilter($event)">&times;</span>
-            }
-          </button>
+            <button class="filter-chip" [class.active]="directSaleFilter()" (click)="toggleDirectSaleFilter()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              Direct Sales
+              @if (directSaleFilter()) {
+                <span class="clear-filter" (click)="clearDirectSaleFilter($event)">&times;</span>
+              }
+            </button>
+          }
 
           <!-- Sales Person Multi-select Filter Dropdown -->
           <div class="filter-dropdown-container" style="position: relative; display: inline-block;">
@@ -127,7 +128,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
             />
           </div>
           
-          @if (startDate() || endDate() || selectedSalesPersonIds().length > 0 || paymentDueFilter()) {
+          @if (startDate() || endDate() || selectedSalesPersonIds().length > 0 || (activeTab() === 'orders' && (paymentDueFilter() || directSaleFilter()))) {
             <button type="button" (click)="resetAllFilters()" style="background: none; border: none; color: var(--accent); font-weight: 700; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; margin-left: 0.25rem;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M2.5 2v6h6M21.5 22v-6h-6M22 11.5A10 10 0 003.2 7.2L2.5 8M2 12.5a10 10 0 0018.8 4.3l.7-.8"/>
@@ -138,8 +139,9 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
         </div>
       </div>
 
-      <!-- KPI Stats Summary Row -->
-      <div class="kpi-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+      @if (activeTab() === 'orders') {
+        <!-- KPI Stats Summary Row -->
+        <div class="kpi-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
         <!-- Total Count Sold Card -->
         <div class="kpi-card" style="background: var(--surface-card); border: 1.5px solid var(--surface-border); border-radius: 0.85rem; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s; cursor: default;">
           <div>
@@ -694,6 +696,11 @@ export class OrderListComponent implements OnInit, OnDestroy {
   totalElements = signal(0);
   pageSize = signal(25);
 
+  paymentsCurrentPage = signal(0);
+  paymentsTotalPages = signal(0);
+  paymentsTotalElements = signal(0);
+  paymentsPageSize = signal(25);
+
   ngOnInit() {
     const paymentDue = this.route.snapshot.queryParamMap.get('paymentDue');
     if (this.orderService.filterState) {
@@ -821,6 +828,14 @@ export class OrderListComponent implements OnInit, OnDestroy {
     this.showFilterDropdown.update(show => !show);
   }
 
+  loadActiveData(page: number = 0) {
+    if (this.activeTab() === 'orders') {
+      this.loadOrders(page);
+    } else {
+      this.loadRecentPayments(page);
+    }
+  }
+
   toggleSalesPersonSelection(id: number) {
     const current = [...this.selectedSalesPersonIds()];
     const index = current.indexOf(id);
@@ -830,7 +845,7 @@ export class OrderListComponent implements OnInit, OnDestroy {
       current.push(id);
     }
     this.selectedSalesPersonIds.set(current);
-    this.loadOrders(0);
+    this.loadActiveData(0);
   }
 
   isSalesPersonSelected(id: number): boolean {
@@ -839,17 +854,17 @@ export class OrderListComponent implements OnInit, OnDestroy {
 
   clearSalesPersonFilter() {
     this.selectedSalesPersonIds.set([]);
-    this.loadOrders(0);
+    this.loadActiveData(0);
   }
 
   onStartDateChange(val: string) {
     this.startDate.set(val);
-    this.loadOrders(0);
+    this.loadActiveData(0);
   }
 
   onEndDateChange(val: string) {
     this.endDate.set(val);
-    this.loadOrders(0);
+    this.loadActiveData(0);
   }
 
   resetAllFilters() {
@@ -859,30 +874,31 @@ export class OrderListComponent implements OnInit, OnDestroy {
     this.paymentDueFilter.set(false);
     this.directSaleFilter.set(false);
     this.currentPage.set(0);
+    this.paymentsCurrentPage.set(0);
     this.orderService.filterState = undefined;
-    this.loadOrders(0);
+    this.loadActiveData(0);
   }
 
   togglePaymentDueFilter() {
     this.paymentDueFilter.set(!this.paymentDueFilter());
-    this.loadOrders(0);
+    this.loadActiveData(0);
   }
 
   clearPaymentDueFilter(event: Event) {
     event.stopPropagation();
     this.paymentDueFilter.set(false);
-    this.loadOrders(0);
+    this.loadActiveData(0);
   }
 
   toggleDirectSaleFilter() {
     this.directSaleFilter.set(!this.directSaleFilter());
-    this.loadOrders(0);
+    this.loadActiveData(0);
   }
 
   clearDirectSaleFilter(event: Event) {
     event.stopPropagation();
     this.directSaleFilter.set(false);
-    this.loadOrders(0);
+    this.loadActiveData(0);
   }
 
   navigateToCreate() {
@@ -900,15 +916,36 @@ export class OrderListComponent implements OnInit, OnDestroy {
   setTab(tab: 'orders' | 'payments') {
     this.activeTab.set(tab);
     if (tab === 'payments') {
-      this.loadRecentPayments();
+      this.loadRecentPayments(this.paymentsCurrentPage());
+    } else {
+      this.loadOrders(this.currentPage());
     }
   }
 
-  loadRecentPayments() {
+  loadRecentPayments(page: number = 0) {
     this.paymentsLoading.set(true);
-    this.orderService.getRecentPayments(0, 50).subscribe({
+    let startIso: string | undefined = undefined;
+    if (this.startDate()) {
+      startIso = `${this.startDate()}T00:00:00`;
+    }
+
+    let endIso: string | undefined = undefined;
+    if (this.endDate()) {
+      endIso = `${this.endDate()}T23:59:59`;
+    }
+
+    this.orderService.getRecentPayments(
+      page,
+      this.paymentsPageSize(),
+      this.selectedSalesPersonIds(),
+      startIso,
+      endIso
+    ).subscribe({
       next: (res) => {
         this.recentPayments.set(res.content || []);
+        this.paymentsCurrentPage.set(res.page.number);
+        this.paymentsTotalPages.set(res.page.totalPages);
+        this.paymentsTotalElements.set(res.page.totalElements);
         this.paymentsLoading.set(false);
       },
       error: () => {

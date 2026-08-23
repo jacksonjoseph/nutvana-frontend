@@ -94,10 +94,18 @@ export class OrderService {
     return this.http.post<Order>(`${this.baseUrl}/${orderId}/payments`, payment);
   }
 
-  getRecentPayments(page: number = 0, size: number = 20): Observable<PageableResponse<OrderPayment>> {
-    return this.http.get<PageableResponse<OrderPayment>>(`${this.baseUrl}/payments`, {
-      params: { page, size }
-    });
+  getRecentPayments(page: number = 0, size: number = 20, salesPersonIds?: number[], startDate?: string, endDate?: string): Observable<PageableResponse<OrderPayment>> {
+    const params: any = { page, size };
+    if (salesPersonIds && salesPersonIds.length > 0) {
+      params.salesPersonIds = salesPersonIds.join(',');
+    }
+    if (startDate) {
+      params.startDate = startDate;
+    }
+    if (endDate) {
+      params.endDate = endDate;
+    }
+    return this.http.get<PageableResponse<OrderPayment>>(`${this.baseUrl}/payments`, { params });
   }
 
   updatePayment(paymentId: number, payment: OrderPayment): Observable<Order> {
