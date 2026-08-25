@@ -74,14 +74,14 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
               }
             </button>
 
-            <button class="filter-chip" [class.active]="paymentTypeFilter() === 'DUE_COVERED'" (click)="setPaymentTypeFilter('DUE_COVERED')">
+            <button class="filter-chip" [class.active]="paymentTypeFilter() === 'DUE_RECEIVED'" (click)="setPaymentTypeFilter('DUE_RECEIVED')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                 <polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
-              Due Covered
-              @if (paymentTypeFilter() === 'DUE_COVERED') {
-                <span class="clear-filter" (click)="$event.stopPropagation(); setPaymentTypeFilter('DUE_COVERED')">&times;</span>
+              Due Received
+              @if (paymentTypeFilter() === 'DUE_RECEIVED') {
+                <span class="clear-filter" (click)="$event.stopPropagation(); setPaymentTypeFilter('DUE_RECEIVED')">&times;</span>
               }
             </button>
           }
