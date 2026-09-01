@@ -132,33 +132,17 @@ import { SalesPerson, SalesPersonInventory } from '../../../models/sales-person.
           </h2>
 
           @if (isDirectSale()) {
-            <div style="border-left: 3px solid var(--accent); padding-left: 0.75rem; padding-top: 0.25rem;">
+            <div style="border-left: 3px solid var(--accent); padding-left: 0.75rem; padding-top: 0.25rem; margin-bottom: 0.75rem;">
               <div style="font-size: 0.9rem; font-weight: 600; color: var(--accent);">
                 Direct / Home Sale Mode Active
               </div>
               <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;">
-                Revenue will be recorded. Customer and stock custody requirements are bypassed.
+                Stock custody requirements are bypassed. Customer selection is optional.
               </div>
             </div>
-            @if (allSalesPersons().length > 0) {
-              <div class="form-group" style="margin-top: 0.75rem; max-width: 350px;">
-                <label class="form-label" for="directSalesPerson" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">Fulfilled by Sales Representative</label>
-                <select
-                  id="directSalesPerson"
-                  class="form-input"
-                  [ngModel]="selectedSalesPersonId()"
-                  (ngModelChange)="onSalesPersonChange($event)"
-                  name="salesPersonId"
-                  style="padding: 0.5rem; font-size: 0.85rem;"
-                >
-                  <option [value]="null">Select Salesperson (Optional)</option>
-                  @for (sp of allSalesPersons(); track sp.id) {
-                    <option [value]="sp.id">{{ sp.name }}</option>
-                  }
-                </select>
-              </div>
-            }
-          } @else if (selectedCustomer()) {
+          }
+
+          @if (selectedCustomer()) {
             <div class="selected-chip">
               <div class="chip-avatar">{{ getInitials(selectedCustomer()!.name) }}</div>
               <div class="chip-info">
@@ -215,6 +199,24 @@ import { SalesPerson, SalesPersonInventory } from '../../../models/sales-person.
                     </div>
                   </button>
                 }
+              </div>
+            }
+            @if (isDirectSale() && allSalesPersons().length > 0) {
+              <div class="form-group" style="margin-top: 0.75rem; max-width: 350px;">
+                <label class="form-label" for="directSalesPerson" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">Fulfilled by Sales Representative</label>
+                <select
+                  id="directSalesPerson"
+                  class="form-input"
+                  [ngModel]="selectedSalesPersonId()"
+                  (ngModelChange)="onSalesPersonChange($event)"
+                  name="salesPersonId"
+                  style="padding: 0.5rem; font-size: 0.85rem;"
+                >
+                  <option [value]="null">Select Salesperson (Optional)</option>
+                  @for (sp of allSalesPersons(); track sp.id) {
+                    <option [value]="sp.id">{{ sp.name }}</option>
+                  }
+                </select>
               </div>
             }
           }
@@ -1039,13 +1041,6 @@ export class OrderCreateComponent implements OnInit {
 
   toggleDirectSale(enabled: boolean) {
     this.isDirectSale.set(enabled);
-    if (enabled) {
-      this.selectedCustomer.set(null);
-      this.isSalesPersonLinked.set(false);
-      this.salesPersonName.set('');
-      this.salesPersonStockMap.set(new Map());
-      this.selectedSalesPersonId.set(null);
-    }
   }
 
   onDragOver(event: DragEvent) {
@@ -1248,7 +1243,7 @@ export class OrderCreateComponent implements OnInit {
 
     const order: Order = {
       isDirectSale: this.isDirectSale(),
-      customerId: this.isDirectSale() ? undefined : this.selectedCustomer()?.id,
+      customerId: this.selectedCustomer()?.id,
       salesPersonId: this.selectedSalesPersonId() || undefined,
       amountCollected: this.amountCollected,
       discount: this.discount || 0,

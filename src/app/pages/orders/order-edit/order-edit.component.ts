@@ -88,33 +88,17 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
             </h2>
 
             @if (isDirectSale()) {
-              <div style="border-left: 3px solid var(--accent); padding-left: 0.75rem; padding-top: 0.25rem;">
+              <div style="border-left: 3px solid var(--accent); padding-left: 0.75rem; padding-top: 0.25rem; margin-bottom: 0.75rem;">
                 <div style="font-size: 0.9rem; font-weight: 600; color: var(--accent);">
                   Direct / Home Sale Mode Active
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;">
-                  Revenue will be recorded. Customer and stock custody requirements are bypassed.
+                  Stock custody requirements are bypassed. Customer selection is optional.
                 </div>
               </div>
-              @if (allSalesPersons().length > 0) {
-                <div class="form-group" style="margin-top: 0.75rem; max-width: 350px;">
-                  <label class="form-label" for="directSalesPerson" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">Fulfilled by Sales Representative</label>
-                  <select
-                    id="directSalesPerson"
-                    class="form-input"
-                    [ngModel]="selectedSalesPersonId()"
-                    (ngModelChange)="onSalesPersonChange($event)"
-                    name="salesPersonId"
-                    style="padding: 0.5rem; font-size: 0.85rem;"
-                  >
-                    <option [value]="null">Select Salesperson (Optional)</option>
-                    @for (sp of allSalesPersons(); track sp.id) {
-                      <option [value]="sp.id">{{ sp.name }}</option>
-                    }
-                  </select>
-                </div>
-              }
-            } @else if (selectedCustomer()) {
+            }
+
+            @if (selectedCustomer()) {
               <div class="selected-chip">
                 <div class="chip-avatar">{{ getInitials(selectedCustomer()!.name) }}</div>
                 <div class="chip-info">
@@ -128,7 +112,6 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
                   </svg>
                 </button>
               </div>
-
               @if (getSalesPersonsForCustomer().length > 0) {
                 <div class="form-group" style="margin-top: 0.75rem; max-width: 350px;">
                   <label class="form-label" for="orderSalesPerson" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">Fulfilled by Sales Representative</label>
@@ -172,6 +155,24 @@ import { PrintInvoiceComponent } from '../../../shared/components/print-invoice/
                       </div>
                     </button>
                   }
+                </div>
+              }
+              @if (isDirectSale() && allSalesPersons().length > 0) {
+                <div class="form-group" style="margin-top: 0.75rem; max-width: 350px;">
+                  <label class="form-label" for="directSalesPerson" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">Fulfilled by Sales Representative</label>
+                  <select
+                    id="directSalesPerson"
+                    class="form-input"
+                    [ngModel]="selectedSalesPersonId()"
+                    (ngModelChange)="onSalesPersonChange($event)"
+                    name="salesPersonId"
+                    style="padding: 0.5rem; font-size: 0.85rem;"
+                  >
+                    <option [value]="null">Select Salesperson (Optional)</option>
+                    @for (sp of allSalesPersons(); track sp.id) {
+                      <option [value]="sp.id">{{ sp.name }}</option>
+                    }
+                  </select>
                 </div>
               }
             }
@@ -994,10 +995,6 @@ export class OrderEditComponent implements OnInit {
 
   toggleDirectSale(value: boolean) {
     this.isDirectSale.set(value);
-    if (value) {
-      this.selectedCustomer.set(null);
-      this.selectedSalesPersonId.set(null);
-    }
   }
 
   onSalesPersonChange(spId: any) {
@@ -1132,7 +1129,7 @@ export class OrderEditComponent implements OnInit {
       formattedDate = `${String(d.getDate()).padStart(2, '0')}-${months[d.getMonth()]}-${d.getFullYear()}`;
     }
     const order: Order = {
-      customerId: this.isDirectSale() ? undefined : this.selectedCustomer()?.id,
+      customerId: this.selectedCustomer()?.id,
       isDirectSale: this.isDirectSale(),
       salesPersonId: this.selectedSalesPersonId() || undefined,
       amountCollected: this.amountCollected,
