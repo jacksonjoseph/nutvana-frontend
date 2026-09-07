@@ -371,9 +371,9 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 
       @if (showDeleteDialog()) {
         <app-confirm-dialog
-          title="Delete Order"
-          [message]="'Are you sure you want to delete this order? This action cannot be undone.'"
-          (confirmed)="deleteOrder()"
+          title="Delete Customer"
+          [message]="'Are you sure you want to delete this customer? This action cannot be undone.'"
+          (confirmed)="deleteCustomer()"
           (cancelled)="showDeleteDialog.set(false)"
         />
       }
