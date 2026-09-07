@@ -341,10 +341,10 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
               <div class="payment-card-row" (click)="navigateToView(payment.orderGroupId!)" style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-card); border: 1.5px solid var(--surface-border); border-radius: 1rem; padding: 1rem; cursor: pointer; transition: all 0.2s;">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                   <div class="payment-icon-wrapper" 
-                       [style.background]="payment.paymentType === 'REFUND' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)'" 
-                       [style.color]="payment.paymentType === 'REFUND' ? '#ef4444' : '#10b981'" 
+                       [style.background]="(payment.paymentType === 'REFUND' || payment.notes?.includes('Cash Refund') || payment.notes?.includes('refund')) ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)'" 
+                       [style.color]="(payment.paymentType === 'REFUND' || payment.notes?.includes('Cash Refund') || payment.notes?.includes('refund')) ? '#ef4444' : '#10b981'" 
                        style="width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 700;">
-                    {{ payment.paymentType === 'REFUND' ? '🔄' : '₹' }}
+                    {{ (payment.paymentType === 'REFUND' || payment.notes?.includes('Cash Refund') || payment.notes?.includes('refund')) ? '🔄' : '₹' }}
                   </div>
                   <div>
                     <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
@@ -362,11 +362,11 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
                   </div>
                 </div>
                 <div style="text-align: right;">
-                  <div [style.color]="payment.paymentType === 'REFUND' ? '#ef4444' : '#10b981'" style="font-weight: 800; font-size: 1.1rem;">
-                    {{ payment.paymentType === 'REFUND' ? '-' : '+' }}{{ payment.amount | currency:'INR':'₹':'1.0-0' }}
+                  <div [style.color]="(payment.paymentType === 'REFUND' || payment.notes?.includes('Cash Refund') || payment.notes?.includes('refund')) ? '#ef4444' : '#10b981'" style="font-weight: 800; font-size: 1.1rem;">
+                    {{ (payment.paymentType === 'REFUND' || payment.notes?.includes('Cash Refund') || payment.notes?.includes('refund')) ? '-' : '+' }}{{ payment.amount | currency:'INR':'₹':'1.0-0' }}
                   </div>
                   <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; margin-top: 0.15rem;">
-                    {{ payment.paymentMode }}{{ payment.paymentType === 'REFUND' ? ' (CASH REFUND)' : '' }}
+                    {{ payment.paymentMode }}{{ (payment.paymentType === 'REFUND' || payment.notes?.includes('Cash Refund') || payment.notes?.includes('refund')) ? ' (CASH REFUND)' : '' }}
                   </div>
                 </div>
               </div>
