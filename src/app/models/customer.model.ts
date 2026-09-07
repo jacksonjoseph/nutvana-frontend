@@ -8,4 +8,5 @@ export interface Customer {
   salesPersonName?: string;
   salesPersonIds?: number[];
   salesPersonNames?: string[];
+  storeCredit?: number;
 }

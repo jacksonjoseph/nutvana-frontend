@@ -9,6 +9,7 @@ export interface CustomerReturn {
   quantity: number;
   unitPrice: number;
   returnAmount?: number;
+  settlementType?: 'STORE_CREDIT' | 'SALES_PERSON_PAID';
   notes?: string;
   createdAt?: string;
 }

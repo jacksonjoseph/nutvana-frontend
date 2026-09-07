@@ -129,6 +129,13 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
               <span class="summary-lbl">Balance</span>
               <span class="summary-val" [class.s-red]="orderSummary().totalBalance > 0" [class.s-muted]="orderSummary().totalBalance === 0">{{ orderSummary().totalBalance | currency:'INR':'₹':'1.0-0' }}</span>
             </div>
+            @if ((customer.storeCredit ?? 0) > 0) {
+              <div class="summary-divider"></div>
+              <div class="summary-item">
+                <span class="summary-lbl">Store Credit</span>
+                <span class="summary-val" style="color: #10b981; font-weight: 800;">{{ customer.storeCredit | currency:'INR':'₹':'1.0-0' }}</span>
+              </div>
+            }
           </div>
         }
 
@@ -280,10 +287,20 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
                   </div>
                 </div>
 
-                <div>
-                  <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Notes / Reason for Return</label>
-                  <input type="text" style="width: 100%; padding: 0.6rem 0.85rem; background: var(--surface-ground); border: 1.5px solid var(--surface-border); border-radius: 0.5rem; color: var(--text-primary); font-family: inherit; font-size: 0.85rem;"
-                         [(ngModel)]="newReturn().notes" name="notes" placeholder="e.g. Expired batch, packaging damage, etc.">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                  <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Return Settlement Method</label>
+                    <select style="width: 100%; padding: 0.6rem 0.85rem; background: var(--surface-ground); border: 1.5px solid var(--surface-border); border-radius: 0.5rem; color: var(--text-primary); font-family: inherit; font-size: 0.85rem;"
+                            [(ngModel)]="newReturn().settlementType" name="settlementType" required>
+                      <option value="STORE_CREDIT">Store Credit / Adjust Dues (Default)</option>
+                      <option value="SALES_PERSON_PAID">Salesperson Cash Refund (Direct Cash Paid)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Notes / Reason for Return</label>
+                    <input type="text" style="width: 100%; padding: 0.6rem 0.85rem; background: var(--surface-ground); border: 1.5px solid var(--surface-border); border-radius: 0.5rem; color: var(--text-primary); font-family: inherit; font-size: 0.85rem;"
+                           [(ngModel)]="newReturn().notes" name="notes" placeholder="e.g. Expired batch, packaging damage, etc.">
+                  </div>
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
@@ -338,7 +355,7 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
                           -{{ item.returnAmount | currency:'INR':'₹':'1.0-0' }}
                         </div>
                         <div style="font-size: 0.65rem; background: var(--surface-ground); border: 1px solid var(--surface-border); padding: 0.15rem 0.4rem; border-radius: 0.4rem; color: var(--text-secondary); font-weight: 700; display: inline-block; margin-top: 0.25rem;">
-                          CREDITED
+                          {{ item.settlementType === 'SALES_PERSON_PAID' ? 'Salesperson Cash Refund' : 'Store Credit / Due Deduction' }}
                         </div>
                       </div>
                     </div>
@@ -950,11 +967,12 @@ export class CustomerDetails implements OnInit {
   returnsLoading = signal(false);
   products = signal<Product[]>([]);
   salesPersons = signal<SalesPerson[]>([]);
-  newReturn = signal<{ productId: number | null, salesPersonId: number | null, quantity: number | null, unitPrice: number | null, notes: string }>({
+  newReturn = signal<{ productId: number | null, salesPersonId: number | null, quantity: number | null, unitPrice: number | null, settlementType: 'STORE_CREDIT' | 'SALES_PERSON_PAID', notes: string }>({
     productId: null,
     salesPersonId: null,
     quantity: null,
     unitPrice: null,
+    settlementType: 'STORE_CREDIT',
     notes: ''
   });
   recordingReturn = signal(false);
@@ -1139,6 +1157,7 @@ export class CustomerDetails implements OnInit {
       productId: Number(form.productId),
       quantity: Number(form.quantity),
       unitPrice: Number(form.unitPrice ?? 0),
+      settlementType: form.settlementType || 'STORE_CREDIT',
       notes: form.notes
     };
 
@@ -1151,15 +1170,25 @@ export class CustomerDetails implements OnInit {
           salesPersonId: null,
           quantity: null,
           unitPrice: null,
+          settlementType: 'STORE_CREDIT',
           notes: ''
         });
-        // Reload list and summary metrics
+        // Reload list, summary metrics, and customer info (for store credit)
+        this.loadCustomerInfo();
         this.loadReturns();
         this.loadOrderSummary();
         this.loadOrders(0);
       },
       error: () => {
         this.recordingReturn.set(false);
+      }
+    });
+  }
+
+  private loadCustomerInfo() {
+    this.customerService.getById(this.customerId).subscribe({
+      next: (data) => {
+        this.customer = data;
       }
     });
   }
