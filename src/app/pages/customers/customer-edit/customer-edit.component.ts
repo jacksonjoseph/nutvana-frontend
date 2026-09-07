@@ -46,6 +46,10 @@ import { SalesPerson } from '../../../models/sales-person.model';
               <label class="form-label" for="phone">Phone</label>
               <input id="phone" class="form-input" type="tel" [(ngModel)]="customer.phone" name="phone" />
             </div>
+            <div class="form-group">
+              <label class="form-label" for="storeCredit">Store Credit Balance (₹)</label>
+              <input id="storeCredit" class="form-input" type="number" step="any" min="0" [(ngModel)]="customer.storeCredit" name="storeCredit" placeholder="0.0" />
+            </div>
 
             <div class="form-group">
               <label class="form-label" style="margin-bottom: 0.5rem;">Assigned Sales Partners</label>

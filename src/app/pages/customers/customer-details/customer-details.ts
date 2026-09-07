@@ -129,13 +129,15 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
               <span class="summary-lbl">Balance</span>
               <span class="summary-val" [class.s-red]="orderSummary().totalBalance > 0" [class.s-muted]="orderSummary().totalBalance === 0">{{ orderSummary().totalBalance | currency:'INR':'₹':'1.0-0' }}</span>
             </div>
-            @if ((customer.storeCredit ?? 0) > 0) {
-              <div class="summary-divider"></div>
-              <div class="summary-item">
-                <span class="summary-lbl">Store Credit</span>
-                <span class="summary-val" style="color: #10b981; font-weight: 800;">{{ customer.storeCredit | currency:'INR':'₹':'1.0-0' }}</span>
-              </div>
-            }
+            <div class="summary-divider"></div>
+            <div class="summary-item" (click)="openEditStoreCreditModal()" style="cursor: pointer;" title="Click to edit Store Credit">
+              <span class="summary-lbl" style="display: flex; align-items: center; gap: 0.2rem;">
+                Store Credit <span style="font-size: 0.65rem; filter: grayscale(1);">✏️</span>
+              </span>
+              <span class="summary-val" [style.color]="(customer.storeCredit ?? 0) > 0 ? '#10b981' : 'var(--text-muted)'" style="font-weight: 800;">
+                {{ customer.storeCredit ?? 0 | currency:'INR':'₹':'1.0-0' }}
+              </span>
+            </div>
           </div>
         }
 
@@ -369,11 +371,32 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
 
       @if (showDeleteDialog()) {
         <app-confirm-dialog
-          title="Delete Customer"
-          [message]="'Are you sure you want to delete this customer? This action cannot be undone.'"
-          (confirmed)="deleteCustomer()"
+          title="Delete Order"
+          [message]="'Are you sure you want to delete this order? This action cannot be undone.'"
+          (confirmed)="deleteOrder()"
           (cancelled)="showDeleteDialog.set(false)"
         />
+      }
+
+      @if (showCreditModal()) {
+        <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; display: flex; align-items: center; justify-content: center; padding: 1rem;">
+          <div style="background: var(--surface-card); border: 1.5px solid var(--surface-border); border-radius: 1.2rem; padding: 1.5rem; width: 100%; max-width: 380px;">
+            <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">Edit Store Credit</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">
+              Adjust store credit balance for {{ customer.name }}.
+            </p>
+            <div style="margin-bottom: 1.25rem;">
+              <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">Store Credit Amount (₹)</label>
+              <input type="number" step="any" min="0" [(ngModel)]="newCreditAmount" style="width: 100%; padding: 0.65rem 0.85rem; background: var(--surface-ground); border: 1.5px solid var(--surface-border); border-radius: 0.6rem; color: var(--text-primary); font-family: inherit; font-size: 0.9rem;">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.6rem;">
+              <button type="button" (click)="showCreditModal.set(false)" style="background: var(--surface-ground); border: 1px solid var(--surface-border); padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-secondary);">Cancel</button>
+              <button type="button" (click)="saveStoreCredit()" [disabled]="savingCredit()" style="background: var(--accent-gradient); color: white; border: none; padding: 0.5rem 1.25rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+                {{ savingCredit() ? 'Saving...' : 'Save Credit' }}
+              </button>
+            </div>
+          </div>
+        </div>
       }
     </div>
   `,
@@ -976,6 +999,9 @@ export class CustomerDetails implements OnInit {
     notes: ''
   });
   recordingReturn = signal(false);
+  showCreditModal = signal(false);
+  newCreditAmount = 0;
+  savingCredit = signal(false);
 
   orders = signal<Order[]>([]);
   totalOrders = signal(0);
@@ -1189,6 +1215,29 @@ export class CustomerDetails implements OnInit {
     this.customerService.getById(this.customerId).subscribe({
       next: (data) => {
         this.customer = data;
+      }
+    });
+  }
+
+  openEditStoreCreditModal() {
+    this.newCreditAmount = this.customer.storeCredit ?? 0;
+    this.showCreditModal.set(true);
+  }
+
+  saveStoreCredit() {
+    this.savingCredit.set(true);
+    const updated: Customer = {
+      ...this.customer,
+      storeCredit: Number(this.newCreditAmount ?? 0)
+    };
+    this.customerService.update(this.customerId, updated).subscribe({
+      next: (res) => {
+        this.customer = res;
+        this.savingCredit.set(false);
+        this.showCreditModal.set(false);
+      },
+      error: () => {
+        this.savingCredit.set(false);
       }
     });
   }
