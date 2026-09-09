@@ -4,8 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { OrderService } from '../../../services/order.service';
 import { SalesPersonService } from '../../../services/sales-person.service';
+import { ProductService } from '../../../services/product.service';
 import { Order } from '../../../models/order.model';
 import { SalesPerson } from '../../../models/sales-person.model';
+import { Product } from '../../../models/product.model';
 import { OrderPayment } from '../../../models/order-payment.model';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 
@@ -120,6 +122,41 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
               </div>
             }
           </div>
+
+          <!-- Product Multi-select Filter Dropdown -->
+          <div class="filter-dropdown-container" style="position: relative; display: inline-block;">
+            <button type="button" class="btn-filter" (click)="toggleProductFilterDropdown()" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.85rem; background: var(--surface-card); border: 1.5px solid var(--surface-border); border-radius: 2rem; color: var(--text-primary); font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              </svg>
+              <span>Product</span>
+              @if (selectedProductIds().length > 0) {
+                <span class="badge" style="background: var(--accent); color: white; font-size: 0.65rem; font-weight: 700; padding: 0.05rem 0.3rem; border-radius: 0.35rem;">
+                  {{ selectedProductIds().length }}
+                </span>
+              }
+            </button>
+
+            @if (showProductFilterDropdown()) {
+              <div class="backdrop" (click)="showProductFilterDropdown.set(false)" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99; background: transparent;"></div>
+              <div class="filter-dropdown-menu" style="position: absolute; left: 0; top: calc(100% + 0.5rem); z-index: 100; width: 220px; background: var(--surface-card); border: 1.5px solid var(--surface-border); border-radius: 0.75rem; box-shadow: 0 10px 30px rgba(0,0,0,0.2); padding: 0.6rem; display: flex; flex-direction: column; gap: 0.4rem;">
+                <div style="font-weight: 700; font-size: 0.75rem; color: var(--text-secondary); border-bottom: 1px solid var(--surface-border); padding-bottom: 0.3rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span>FILTER BY PRODUCT</span>
+                  @if (selectedProductIds().length > 0) {
+                    <button type="button" (click)="clearProductFilter()" style="background: none; border: none; color: var(--accent); font-size: 0.7rem; font-weight: 700; cursor: pointer; padding: 0;">Clear</button>
+                  }
+                </div>
+                <div class="dropdown-list" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.35rem;">
+                  @for (p of products(); track p.id) {
+                    <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: var(--text-primary); cursor: pointer; padding: 0.2rem 0; user-select: none;">
+                      <input type="checkbox" [checked]="isProductSelected(p.id!)" (change)="toggleProductSelection(p.id!)" style="accent-color: var(--accent); width: 14px; height: 14px;" />
+                      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.name }}</span>
+                    </label>
+                  }
+                </div>
+              </div>
+            }
+          </div>
         </div>
 
         <!-- Date Range Filter Pill Container -->
@@ -152,7 +189,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
             />
           </div>
           
-          @if (startDate() || endDate() || selectedSalesPersonIds().length > 0 || (activeTab() === 'orders' && (paymentDueFilter() || directSaleFilter())) || (activeTab() === 'payments' && paymentTypeFilter() !== '')) {
+          @if (startDate() || endDate() || selectedSalesPersonIds().length > 0 || selectedProductIds().length > 0 || (activeTab() === 'orders' && (paymentDueFilter() || directSaleFilter())) || (activeTab() === 'payments' && paymentTypeFilter() !== '')) {
             <button type="button" (click)="resetAllFilters()" style="background: none; border: none; color: var(--accent); font-weight: 700; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; margin-left: 0.25rem;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M2.5 2v6h6M21.5 22v-6h-6M22 11.5A10 10 0 003.2 7.2L2.5 8M2 12.5a10 10 0 0018.8 4.3l.7-.8"/>
@@ -169,7 +206,12 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
         <!-- Total Count Sold Card -->
         <div class="kpi-card" style="background: var(--surface-card); border: 1.5px solid var(--surface-border); border-radius: 0.85rem; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s; cursor: default;">
           <div>
-            <div class="kpi-label" style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Total Count Sold</div>
+            <div class="kpi-label" style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.35rem;">
+              <span>Total Count Sold</span>
+              @if (selectedProductIds().length > 0) {
+                <span style="background: var(--accent); color: white; font-size: 0.6rem; font-weight: 700; padding: 0.05rem 0.3rem; border-radius: 0.25rem;">FILTERED</span>
+              }
+            </div>
             <div class="kpi-value" style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary); margin-top: 0.25rem;">
               {{ summaryData().totalCountSold }} <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">units</span>
             </div>
@@ -714,6 +756,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 export class OrderListComponent implements OnInit, OnDestroy {
   private orderService = inject(OrderService);
   private salesPersonService = inject(SalesPersonService);
+  private productService = inject(ProductService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
@@ -722,8 +765,11 @@ export class OrderListComponent implements OnInit, OnDestroy {
 
   orders = signal<Order[]>([]);
   salesPersons = signal<SalesPerson[]>([]);
+  products = signal<Product[]>([]);
   selectedSalesPersonIds = signal<number[]>([]);
+  selectedProductIds = signal<number[]>([]);
   showFilterDropdown = signal(false);
+  showProductFilterDropdown = signal(false);
 
   // Tab State
   activeTab = signal<'orders' | 'payments'>('orders');
@@ -758,11 +804,13 @@ export class OrderListComponent implements OnInit, OnDestroy {
       this.paymentDueFilter.set(state.paymentDueFilter);
       this.directSaleFilter.set(state.directSaleFilter);
       this.selectedSalesPersonIds.set(state.selectedSalesPersonIds);
+      this.selectedProductIds.set(state.selectedProductIds || []);
       this.currentPage.set(state.currentPage);
     } else if (paymentDue === 'true') {
       this.paymentDueFilter.set(true);
     }
     this.loadSalesPersons();
+    this.loadProducts();
     this.loadOrders(this.currentPage());
   }
 
@@ -779,6 +827,14 @@ export class OrderListComponent implements OnInit, OnDestroy {
     this.salesPersonService.getAll(0, 100).subscribe({
       next: (data) => {
         this.salesPersons.set(data.content || []);
+      }
+    });
+  }
+
+  loadProducts() {
+    this.productService.getAll(0, 200).subscribe({
+      next: (data) => {
+        this.products.set(data.content || []);
       }
     });
   }
@@ -804,6 +860,7 @@ export class OrderListComponent implements OnInit, OnDestroy {
       this.paymentDueFilter(),
       isDirectSaleVal,
       this.selectedSalesPersonIds(),
+      this.selectedProductIds(),
       startIso,
       endIso
     ).subscribe({
@@ -847,6 +904,7 @@ export class OrderListComponent implements OnInit, OnDestroy {
       paymentDueFilter: this.paymentDueFilter(),
       directSaleFilter: this.directSaleFilter(),
       selectedSalesPersonIds: this.selectedSalesPersonIds(),
+      selectedProductIds: this.selectedProductIds(),
       currentPage: page
     };
 
@@ -856,6 +914,7 @@ export class OrderListComponent implements OnInit, OnDestroy {
       this.paymentDueFilter(),
       isDirectSaleVal,
       this.selectedSalesPersonIds(),
+      this.selectedProductIds(),
       startIso,
       endIso
     ).subscribe({
@@ -874,6 +933,10 @@ export class OrderListComponent implements OnInit, OnDestroy {
 
   toggleFilterDropdown() {
     this.showFilterDropdown.update(show => !show);
+  }
+
+  toggleProductFilterDropdown() {
+    this.showProductFilterDropdown.update(show => !show);
   }
 
   loadActiveData(page: number = 0) {
@@ -905,6 +968,27 @@ export class OrderListComponent implements OnInit, OnDestroy {
     this.loadActiveData(0);
   }
 
+  toggleProductSelection(id: number) {
+    const current = [...this.selectedProductIds()];
+    const index = current.indexOf(id);
+    if (index > -1) {
+      current.splice(index, 1);
+    } else {
+      current.push(id);
+    }
+    this.selectedProductIds.set(current);
+    this.loadActiveData(0);
+  }
+
+  isProductSelected(id: number): boolean {
+    return this.selectedProductIds().includes(id);
+  }
+
+  clearProductFilter() {
+    this.selectedProductIds.set([]);
+    this.loadActiveData(0);
+  }
+
   onStartDateChange(val: string) {
     this.startDate.set(val);
     this.loadActiveData(0);
@@ -917,6 +1001,7 @@ export class OrderListComponent implements OnInit, OnDestroy {
 
   resetAllFilters() {
     this.selectedSalesPersonIds.set([]);
+    this.selectedProductIds.set([]);
     this.startDate.set('');
     this.endDate.set('');
     this.paymentDueFilter.set(false);

@@ -19,10 +19,11 @@ export class OrderService {
     paymentDueFilter: boolean;
     directSaleFilter: boolean;
     selectedSalesPersonIds: number[];
+    selectedProductIds: number[];
     currentPage: number;
   };
 
-  getAll(page: number = 0, size: number = 10, paymentDue: boolean = false, isDirectSale?: boolean, salesPersonIds?: number[], startDate?: string, endDate?: string): Observable<PageableResponse<Order>> {
+  getAll(page: number = 0, size: number = 10, paymentDue: boolean = false, isDirectSale?: boolean, salesPersonIds?: number[], productIds?: number[], startDate?: string, endDate?: string): Observable<PageableResponse<Order>> {
     const params: any = { page, size };
     if (paymentDue) {
       params.paymentDue = true;
@@ -32,6 +33,9 @@ export class OrderService {
     }
     if (salesPersonIds && salesPersonIds.length > 0) {
       params.salesPersonIds = salesPersonIds.join(',');
+    }
+    if (productIds && productIds.length > 0) {
+      params.productIds = productIds.join(',');
     }
     if (startDate) {
       params.startDate = startDate;
@@ -64,7 +68,7 @@ export class OrderService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  getFilteredSummary(paymentDue: boolean = false, isDirectSale?: boolean, salesPersonIds?: number[], startDate?: string, endDate?: string): Observable<{ totalCountSold: number, totalCollected: number, totalBalance: number }> {
+  getFilteredSummary(paymentDue: boolean = false, isDirectSale?: boolean, salesPersonIds?: number[], productIds?: number[], startDate?: string, endDate?: string): Observable<{ totalCountSold: number, totalCollected: number, totalBalance: number }> {
     const params: any = {};
     if (paymentDue) {
       params.paymentDue = true;
@@ -74,6 +78,9 @@ export class OrderService {
     }
     if (salesPersonIds && salesPersonIds.length > 0) {
       params.salesPersonIds = salesPersonIds.join(',');
+    }
+    if (productIds && productIds.length > 0) {
+      params.productIds = productIds.join(',');
     }
     if (startDate) {
       params.startDate = startDate;
