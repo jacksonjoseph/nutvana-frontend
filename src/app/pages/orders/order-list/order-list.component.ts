@@ -834,7 +834,9 @@ export class OrderListComponent implements OnInit, OnDestroy {
   loadProducts() {
     this.productService.getAll(0, 200).subscribe({
       next: (data) => {
-        this.products.set(data.content || []);
+        const list = [...(data.content || [])];
+        list.sort((a, b) => (a.displayOrder ?? 99) - (b.displayOrder ?? 99) || (a.name || '').localeCompare(b.name || ''));
+        this.products.set(list);
       }
     });
   }

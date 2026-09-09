@@ -12,5 +12,6 @@ export interface Product {
   code: string;
   maxRetailPrice: number;
   maxSalePrice: number;
+  displayOrder?: number;
   inventory?: Inventory;
 }
