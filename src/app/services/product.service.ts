@@ -12,9 +12,9 @@ export class ProductService {
   private http = inject(HttpClient);
   private baseUrl = `${environment.apiUrl}/products`;
 
-  getAll(page: number = 0, size: number = 10): Observable<PageableResponse<Product>> {
+  getAll(page: number = 0, size: number = 10, sort: string = 'name,asc'): Observable<PageableResponse<Product>> {
     return this.http.get<PageableResponse<Product>>(this.baseUrl, {
-      params: { page, size }
+      params: { page, size, sort }
     });
   }
 
